@@ -117,6 +117,26 @@ export default function SuiviPage() {
     );
   }
 
+  /* ── En attente de paiement ── */
+  if (order.status === "pending_payment") {
+    return (
+      <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center gap-6 bg-[#0D0D0D] px-6 text-center">
+        <p className="font-[family-name:var(--font-cormorant)] text-[28px] text-[#F0EAD6] font-light">
+          Paiement en attente
+        </p>
+        <p className="text-[13.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)] max-w-xs">
+          Cette commande n&apos;a pas encore été réglée.
+        </p>
+        <Link
+          href={`/paiement/${order.id}`}
+          className="px-6 py-3 bg-[#C8A96E] text-[#0D0D0D] text-[12.5px] tracking-[0.08em] uppercase rounded-[4px] hover:bg-[#E2C07A] transition-all font-[family-name:var(--font-dm-sans)]"
+        >
+          Procéder au paiement
+        </Link>
+      </div>
+    );
+  }
+
   const isCancelled = order.status === "annule";
   const currentStep = STATUS_ORDER[order.status] ?? 0;
   const canCancel = !isCancelled && order.status === "nouveau" && secondsLeft > 0;

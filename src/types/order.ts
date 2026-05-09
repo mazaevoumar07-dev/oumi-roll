@@ -9,7 +9,7 @@ export interface Order {
   prenom: string;
   nom: string;
   telephone: string;
-  status: "nouveau" | "en_preparation" | "en_livraison" | "livre" | "annule";
+  status: "pending_payment" | "nouveau" | "en_preparation" | "en_livraison" | "livre" | "annule";
   createdAt: string;
 }
 
@@ -31,6 +31,14 @@ export function saveOrder(order: Order): void {
 
 export function getOrder(id: string): Order | null {
   return readAll()[id] ?? null;
+}
+
+export function updateOrderStatus(id: string, status: Order["status"]): void {
+  const all = readAll();
+  if (all[id]) {
+    all[id] = { ...all[id], status };
+    localStorage.setItem(KEY, JSON.stringify(all));
+  }
 }
 
 export function cancelOrder(id: string): void {

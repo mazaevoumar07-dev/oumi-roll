@@ -107,12 +107,12 @@ export default function CommandePage() {
         prenom: form.prenom,
         nom: form.nom,
         telephone: form.telephone,
-        status: "nouveau",
+        status: "pending_payment",
         createdAt: new Date().toISOString(),
       });
       clearCart();
       closeCart();
-      router.push(`/suivi/${id}`);
+      router.push(`/paiement/${id}`);
     }
   }
 
