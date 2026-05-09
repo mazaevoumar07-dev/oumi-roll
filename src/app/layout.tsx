@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { Cormorant_Garamond, DM_Sans } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/Header";
+import CartDrawer from "@/components/CartDrawer";
+import { CartProvider } from "@/context/CartContext";
+import { AuthProvider } from "@/context/AuthContext";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -28,8 +31,13 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${cormorant.variable} ${dmSans.variable}`}>
       <body className="min-h-screen flex flex-col">
-        <Header />
-        <main className="flex-1 pt-[72px]">{children}</main>
+        <AuthProvider>
+          <CartProvider>
+            <Header />
+            <main className="flex-1 pt-[72px]">{children}</main>
+            <CartDrawer />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );

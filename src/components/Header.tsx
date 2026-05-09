@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 const NAV_LINKS = [
   { href: "#menu",    label: "Menu" },
@@ -13,10 +15,22 @@ const LANGS = ["FR", "EN", "RU"] as const;
 type Lang = typeof LANGS[number];
 
 export default function Header() {
-  const [scrolled,    setScrolled]    = useState(false);
-  const [menuOpen,    setMenuOpen]    = useState(false);
-  const [activeLang,  setActiveLang]  = useState<Lang>("FR");
-  const [cartCount,   setCartCount]   = useState(0);
+  const [scrolled,     setScrolled]     = useState(false);
+  const [menuOpen,     setMenuOpen]     = useState(false);
+  const [activeLang,   setActiveLang]   = useState<Lang>("FR");
+  const [userDropOpen, setUserDropOpen] = useState(false);
+  const { itemCount, openCart } = useCart();
+  const { user, logout } = useAuth();
+  const dropRef = useRef<HTMLDivElement>(null);
+
+  // Close user dropdown on outside click
+  useEffect(() => {
+    function onClickOut(e: MouseEvent) {
+      if (dropRef.current && !dropRef.current.contains(e.target as Node)) setUserDropOpen(false);
+    }
+    document.addEventListener("mousedown", onClickOut);
+    return () => document.removeEventListener("mousedown", onClickOut);
+  }, []);
 
   // Scroll — glassmorphism
   useEffect(() => {
@@ -113,22 +127,53 @@ export default function Header() {
 
             {/* Cart */}
             <button
+              onClick={openCart}
               className="relative flex items-center justify-center w-10 h-10 text-[#8A8A8A] hover:text-[#C8A96E] hover:bg-[#C8A96E]/8 rounded-[4px] transition-colors duration-200"
-              aria-label={`Panier (${cartCount} article${cartCount !== 1 ? "s" : ""})`}
+              aria-label={`Panier (${itemCount} article${itemCount !== 1 ? "s" : ""})`}
             >
               <CartIcon />
-              {cartCount > 0 && (
+              {itemCount > 0 && (
                 <span className="absolute top-[5px] right-[5px] min-w-[16px] h-4 px-1 bg-[#C8A96E] text-[#0D0D0D] text-[10px] font-medium leading-4 text-center rounded-full">
-                  {cartCount}
+                  {itemCount}
                 </span>
               )}
             </button>
 
-            {/* Login (desktop only) */}
-            <button className="hidden lg:flex items-center gap-2 px-[18px] py-[9px] border border-[#C8A96E]/60 text-[#C8A96E] text-[12.5px] tracking-[0.06em] rounded-[4px] hover:bg-[#C8A96E]/10 hover:border-[#C8A96E] transition-all duration-200">
-              <UserIcon />
-              <span>Connexion</span>
-            </button>
+            {/* Login / User (desktop only) */}
+            {user ? (
+              <div ref={dropRef} className="relative hidden lg:block">
+                <button
+                  onClick={() => setUserDropOpen(v => !v)}
+                  className="flex items-center gap-2 px-[14px] py-[9px] border border-[#C8A96E]/60 text-[#C8A96E] text-[12.5px] tracking-[0.04em] rounded-[4px] hover:bg-[#C8A96E]/10 hover:border-[#C8A96E] transition-all duration-200"
+                >
+                  <UserIcon />
+                  <span className="max-w-[90px] truncate">{user.prenom}</span>
+                </button>
+                {userDropOpen && (
+                  <div className="absolute right-0 top-[calc(100%+8px)] w-44 bg-[#1A1A1A] border border-[#2A2A2A] rounded-[4px] overflow-hidden shadow-xl z-50">
+                    <div className="px-4 py-3 border-b border-[#2A2A2A]">
+                      <p className="text-[12px] text-[#F0EAD6] font-[family-name:var(--font-dm-sans)] truncate">{user.prenom} {user.nom}</p>
+                      <p className="text-[11px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)] truncate mt-0.5">{user.telephone}</p>
+                    </div>
+                    <button
+                      onClick={() => { logout(); setUserDropOpen(false); }}
+                      className="w-full flex items-center gap-2.5 px-4 py-3 text-[12px] text-[#8A8A8A] hover:text-[#F0EAD6] hover:bg-[#2A2A2A] transition-colors font-[family-name:var(--font-dm-sans)]"
+                    >
+                      <LogoutIcon />
+                      Se déconnecter
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                href="/connexion"
+                className="hidden lg:flex items-center gap-2 px-[18px] py-[9px] border border-[#C8A96E]/60 text-[#C8A96E] text-[12.5px] tracking-[0.06em] rounded-[4px] hover:bg-[#C8A96E]/10 hover:border-[#C8A96E] transition-all duration-200"
+              >
+                <UserIcon />
+                <span>Connexion</span>
+              </Link>
+            )}
 
             {/* Burger (mobile only) */}
             <button
@@ -192,11 +237,30 @@ export default function Header() {
           ))}
         </div>
 
-        {/* Login */}
-        <button className="flex items-center justify-center gap-2 w-full px-6 py-[13px] border border-[#C8A96E]/60 text-[#C8A96E] text-[12.5px] tracking-[0.06em] rounded-[4px] hover:bg-[#C8A96E]/10 hover:border-[#C8A96E] transition-all duration-200">
-          <UserIcon />
-          <span>Connexion</span>
-        </button>
+        {/* Login / user */}
+        {user ? (
+          <div className="flex flex-col gap-2">
+            <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A]">
+              Connecté en tant que <span className="text-[#F0EAD6]">{user.prenom} {user.nom}</span>
+            </p>
+            <button
+              onClick={() => { logout(); closeMobileMenu(); }}
+              className="flex items-center justify-center gap-2 w-full px-6 py-[13px] border border-[#2A2A2A] text-[#8A8A8A] text-[12.5px] tracking-[0.06em] rounded-[4px] hover:border-[#C0392B]/40 hover:text-[#C0392B] transition-all duration-200 font-[family-name:var(--font-dm-sans)]"
+            >
+              <LogoutIcon />
+              <span>Se déconnecter</span>
+            </button>
+          </div>
+        ) : (
+          <Link
+            href="/connexion"
+            onClick={closeMobileMenu}
+            className="flex items-center justify-center gap-2 w-full px-6 py-[13px] border border-[#C8A96E]/60 text-[#C8A96E] text-[12.5px] tracking-[0.06em] rounded-[4px] hover:bg-[#C8A96E]/10 hover:border-[#C8A96E] transition-all duration-200 font-[family-name:var(--font-dm-sans)]"
+          >
+            <UserIcon />
+            <span>Connexion</span>
+          </Link>
+        )}
       </div>
     </>
   );
@@ -232,6 +296,16 @@ function UserIcon() {
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
       <circle cx="12" cy="7" r="4" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   );
 }
