@@ -1,12 +1,33 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { MENU_ITEMS } from "@/data/menu";
+import { getBonusConfig, BONUS_MIN_QTY, type BonusConfig } from "@/lib/bonus-storage";
+import { getMenuItems } from "@/lib/menu-storage";
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQty, total } = useCart();
+  const [bonus, setBonus]       = useState<BonusConfig | null>(null);
+  const [giftName, setGiftName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const cfg = getBonusConfig();
+    setBonus(cfg);
+    if (cfg.freeItem && cfg.freeItemId) {
+      const item = getMenuItems().find(i => i.id === cfg.freeItemId && i.available);
+      setGiftName(item?.name ?? null);
+    } else {
+      setGiftName(null);
+    }
+  }, [isOpen]);
+
+  const totalQty      = items.reduce((s, i) => s + i.qty, 0);
+  const bonusUnlocked = totalQty >= BONUS_MIN_QTY;
+  const showFreeDelivery = bonusUnlocked && bonus?.freeDelivery;
+  const showGift         = bonusUnlocked && bonus?.freeItem && !!giftName;
 
   // Lock body scroll when open
   useEffect(() => {
@@ -190,8 +211,30 @@ export default function CartDrawer() {
               </span>
             </div>
 
+            {/* Bonus lines */}
+            {(showFreeDelivery || showGift) && (
+              <div className="flex flex-col gap-1.5 -mt-1 pt-2 border-t border-[#2A2A2A]">
+                {showFreeDelivery && (
+                  <div className="flex items-center gap-2">
+                    <CheckIcon />
+                    <span className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#27AE60]">
+                      Bonus appliqué — Livraison offerte
+                    </span>
+                  </div>
+                )}
+                {showGift && (
+                  <div className="flex items-center gap-2">
+                    <CheckIcon />
+                    <span className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#27AE60]">
+                      Cadeau&nbsp;: {giftName}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
             <p className="font-[family-name:var(--font-dm-sans)] text-[11.5px] text-[#8A8A8A]/60 -mt-2">
-              Livraison calculée à l&apos;étape suivante
+              {showFreeDelivery ? "Livraison offerte avec votre commande" : "Livraison calculée à l’étape suivante"}
             </p>
 
             {/* Checkout button */}
@@ -211,6 +254,14 @@ export default function CartDrawer() {
 }
 
 /* ===== ICONS ===== */
+
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" className="flex-shrink-0 text-[#27AE60]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
 
 function XIcon() {
   return (

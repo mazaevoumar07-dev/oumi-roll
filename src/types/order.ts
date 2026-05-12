@@ -49,6 +49,17 @@ export function cancelOrder(id: string): void {
   }
 }
 
+export function getAllOrders(): Order[] {
+  try {
+    const all = JSON.parse(localStorage.getItem(KEY) ?? "{}") as Record<string, Order>;
+    return Object.values(all).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+  } catch {
+    return [];
+  }
+}
+
 export function generateOrderId(): string {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   let id = "OU";

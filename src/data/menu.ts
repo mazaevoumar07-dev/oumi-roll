@@ -7,6 +7,7 @@ export interface MenuItem {
   originalPrice?: number;
   available: boolean;
   pieces: number;
+  image?: string;
 }
 
 export const MENU_ITEMS: MenuItem[] = [

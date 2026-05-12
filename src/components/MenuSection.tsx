@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { MENU_ITEMS, type MenuItem } from "@/data/menu";
+import { getMenuItems } from "@/lib/menu-storage";
 
 const CATEGORIES = ["Tous", "Makis", "California", "Temaki", "Spécialités"] as const;
 
@@ -11,12 +12,18 @@ const CATEGORIES = ["Tous", "Makis", "California", "Temaki", "Spécialités"] as
 export default function MenuSection() {
   const [activeCategory, setActiveCategory] = useState<string>("Tous");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [items, setItems] = useState<MenuItem[]>(MENU_ITEMS);
   const { addItem } = useCart();
 
+  useEffect(() => {
+    setItems(getMenuItems());
+  }, []);
+
+  const visible = items.filter(i => i.available);
   const filtered =
     activeCategory === "Tous"
-      ? MENU_ITEMS
-      : MENU_ITEMS.filter(i => i.category === activeCategory);
+      ? visible
+      : visible.filter(i => i.category === activeCategory);
 
   function handleQuickAdd(item: MenuItem, e: React.MouseEvent) {
     e.stopPropagation();
