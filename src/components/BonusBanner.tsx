@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLang } from "@/context/LangContext";
 import { getBonusConfig, BONUS_MIN_QTY, type BonusConfig } from "@/lib/bonus-storage";
 import { getMenuItems } from "@/lib/menu-storage";
 
 export default function BonusBanner() {
+  const { t } = useLang();
   const [config, setConfig]     = useState<BonusConfig | null>(null);
   const [giftName, setGiftName] = useState<string | null>(null);
 
@@ -22,11 +24,11 @@ export default function BonusBanner() {
 
   let message = "";
   if (config!.freeDelivery && config!.freeItem && giftName) {
-    message = `Commandez ${BONUS_MIN_QTY} portions et bénéficiez de la livraison offerte + ${giftName} en cadeau !`;
+    message = t.bonus.both(BONUS_MIN_QTY, giftName);
   } else if (config!.freeDelivery) {
-    message = `Commandez ${BONUS_MIN_QTY} portions et bénéficiez de la livraison offerte !`;
+    message = t.bonus.delivery(BONUS_MIN_QTY);
   } else if (giftName) {
-    message = `Commandez ${BONUS_MIN_QTY} portions et recevez ${giftName} en cadeau !`;
+    message = t.bonus.gift(BONUS_MIN_QTY, giftName);
   }
 
   return (

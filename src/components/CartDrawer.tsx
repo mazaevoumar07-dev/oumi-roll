@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { useLang } from "@/context/LangContext";
 import { MENU_ITEMS } from "@/data/menu";
 import { getBonusConfig, BONUS_MIN_QTY, type BonusConfig } from "@/lib/bonus-storage";
 import { getMenuItems } from "@/lib/menu-storage";
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQty, total } = useCart();
+  const { t } = useLang();
   const [bonus, setBonus]       = useState<BonusConfig | null>(null);
   const [giftName, setGiftName] = useState<string | null>(null);
 
@@ -69,7 +71,7 @@ export default function CartDrawer() {
       <aside
         role="dialog"
         aria-modal="true"
-        aria-label="Votre panier"
+        aria-label={t.cart.ariaLabel}
         className={[
           "fixed top-0 right-0 bottom-0 z-[71] w-full sm:w-[420px]",
           "flex flex-col bg-[#1A1A1A] border-l border-[#2A2A2A]",
@@ -81,7 +83,7 @@ export default function CartDrawer() {
         <div className="flex items-center justify-between px-6 py-5 border-b border-[#2A2A2A] flex-shrink-0">
           <div className="flex items-center gap-3">
             <h2 className="font-[family-name:var(--font-cormorant)] text-[22px] font-medium text-[#F0EAD6] leading-none">
-              Votre Panier
+              {t.cart.title}
             </h2>
             {!isEmpty && (
               <span className="flex items-center justify-center min-w-[22px] h-[22px] px-1.5 bg-[#C8A96E] text-[#0D0D0D] text-[11px] font-medium rounded-full font-[family-name:var(--font-dm-sans)]">
@@ -91,7 +93,7 @@ export default function CartDrawer() {
           </div>
           <button
             onClick={closeCart}
-            aria-label="Fermer le panier"
+            aria-label={t.cart.ariaClose}
             className="w-8 h-8 flex items-center justify-center text-[#8A8A8A] hover:text-[#F0EAD6] hover:bg-[#2A2A2A] rounded-[4px] transition-colors"
           >
             <XIcon />
@@ -106,17 +108,17 @@ export default function CartDrawer() {
               <EmptyBagIcon />
               <div>
                 <p className="font-[family-name:var(--font-cormorant)] text-[22px] text-[#F0EAD6] font-light mb-1">
-                  Votre panier est vide
+                  {t.cart.emptyTitle}
                 </p>
                 <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A]">
-                  Ajoutez des articles depuis le menu
+                  {t.cart.emptySub}
                 </p>
               </div>
               <button
                 onClick={closeCart}
                 className="mt-1 px-6 py-[10px] border border-[#C8A96E]/50 text-[#C8A96E] text-[12px] tracking-[0.1em] uppercase rounded-[4px] hover:bg-[#C8A96E]/8 hover:border-[#C8A96E] transition-all duration-200 font-[family-name:var(--font-dm-sans)]"
               >
-                <a href="#menu" onClick={closeCart}>Voir le menu</a>
+                <a href="#menu" onClick={closeCart}>{t.cart.emptyBtn}</a>
               </button>
             </div>
           ) : (
@@ -133,19 +135,19 @@ export default function CartDrawer() {
                       <div>
                         {unavailable && (
                           <span className="inline-block mb-1 text-[10px] tracking-[0.1em] uppercase text-[#C0392B] font-[family-name:var(--font-dm-sans)]">
-                            Indisponible
+                            {t.cart.unavailable}
                           </span>
                         )}
                         <p className="font-[family-name:var(--font-cormorant)] text-[18px] font-medium text-[#F0EAD6] leading-tight">
                           {item.name}
                         </p>
                         <p className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#8A8A8A] mt-0.5">
-                          €{item.price.toFixed(2)} / pièce
+                          €{item.price.toFixed(2)} {t.cart.perPiece}
                         </p>
                       </div>
                       <button
                         onClick={() => removeItem(item.id)}
-                        aria-label={`Supprimer ${item.name}`}
+                        aria-label={t.cart.ariaRemove(item.name)}
                         className="flex-shrink-0 w-7 h-7 flex items-center justify-center text-[#8A8A8A] hover:text-[#C0392B] hover:bg-[#C0392B]/8 rounded-[4px] transition-colors mt-0.5"
                       >
                         <TrashIcon />
@@ -158,7 +160,7 @@ export default function CartDrawer() {
                       <div className="flex items-center border border-[#2A2A2A] rounded-[4px] overflow-hidden">
                         <button
                           onClick={() => updateQty(item.id, item.qty - 1)}
-                          aria-label="Diminuer la quantité"
+                          aria-label={t.cart.ariaDecrease}
                           className="w-8 h-8 flex items-center justify-center text-[#8A8A8A] hover:text-[#F0EAD6] hover:bg-[#2A2A2A] transition-colors"
                         >
                           <MinusIcon />
@@ -168,7 +170,7 @@ export default function CartDrawer() {
                         </span>
                         <button
                           onClick={() => updateQty(item.id, item.qty + 1)}
-                          aria-label="Augmenter la quantité"
+                          aria-label={t.cart.ariaIncrease}
                           className="w-8 h-8 flex items-center justify-center text-[#8A8A8A] hover:text-[#F0EAD6] hover:bg-[#2A2A2A] transition-colors"
                         >
                           <PlusIcon />
@@ -196,7 +198,7 @@ export default function CartDrawer() {
               <div className="flex items-start gap-2.5 px-3.5 py-3 bg-[#C0392B]/10 border border-[#C0392B]/30 rounded-[4px]">
                 <WarningIcon />
                 <p className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#F0EAD6]/80 leading-[1.6]">
-                  Un ou plusieurs articles ne sont plus disponibles et seront retirés lors de la commande.
+                  {t.cart.unavailableWarning}
                 </p>
               </div>
             )}
@@ -204,7 +206,7 @@ export default function CartDrawer() {
             {/* Subtotal */}
             <div className="flex items-center justify-between">
               <span className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] tracking-[0.04em]">
-                Sous-total
+                {t.cart.subtotal}
               </span>
               <span className="font-[family-name:var(--font-cormorant)] text-[24px] font-semibold text-[#C8A96E]">
                 €{total.toFixed(2)}
@@ -218,7 +220,7 @@ export default function CartDrawer() {
                   <div className="flex items-center gap-2">
                     <CheckIcon />
                     <span className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#27AE60]">
-                      Bonus appliqué — Livraison offerte
+                      {t.cart.bonusDelivery}
                     </span>
                   </div>
                 )}
@@ -226,7 +228,7 @@ export default function CartDrawer() {
                   <div className="flex items-center gap-2">
                     <CheckIcon />
                     <span className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#27AE60]">
-                      Cadeau&nbsp;: {giftName}
+                      {t.cart.bonusGift(giftName!)}
                     </span>
                   </div>
                 )}
@@ -234,7 +236,7 @@ export default function CartDrawer() {
             )}
 
             <p className="font-[family-name:var(--font-dm-sans)] text-[11.5px] text-[#8A8A8A]/60 -mt-2">
-              {showFreeDelivery ? "Livraison offerte avec votre commande" : "Livraison calculée à l’étape suivante"}
+              {showFreeDelivery ? t.cart.deliveryFree : t.cart.deliveryNext}
             </p>
 
             {/* Checkout button */}
@@ -243,7 +245,7 @@ export default function CartDrawer() {
               onClick={closeCart}
               className="flex items-center justify-center gap-2 w-full py-[14px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors duration-200 font-[family-name:var(--font-dm-sans)]"
             >
-              Passer la commande
+              {t.cart.checkout}
               <ArrowRightIcon />
             </Link>
           </div>

@@ -2,11 +2,12 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { useLang } from "@/context/LangContext";
 
 export default function HeroSection() {
   const lineRef = useRef<HTMLDivElement>(null);
+  const { t } = useLang();
 
-  // Animate gold line on mount
   useEffect(() => {
     const el = lineRef.current;
     if (!el) return;
@@ -43,20 +44,20 @@ export default function HeroSection() {
               className="h-px bg-[#C8A96E] w-0 transition-all duration-700 ease-out"
             />
             <span className="text-[11px] tracking-[0.22em] uppercase text-[#C8A96E] font-[family-name:var(--font-dm-sans)]">
-              Restaurant · Le Mans
+              {t.hero.eyebrow}
             </span>
           </div>
 
           {/* H1 */}
           <h1 className="font-[family-name:var(--font-cormorant)] leading-[1.05] mb-6">
             <span className="block text-[52px] sm:text-[68px] lg:text-[80px] font-light text-[#F0EAD6] tracking-[0.02em]">
-              L&apos;Art des
+              {t.hero.line1}
             </span>
             <span className="block text-[52px] sm:text-[68px] lg:text-[80px] font-semibold italic text-[#C8A96E] tracking-[0.02em]">
-              Saveurs
+              {t.hero.line2}
             </span>
             <span className="block text-[52px] sm:text-[68px] lg:text-[80px] font-light text-[#F0EAD6] tracking-[0.02em]">
-              Japonaises
+              {t.hero.line3}
             </span>
           </h1>
 
@@ -64,10 +65,8 @@ export default function HeroSection() {
           <div className="w-16 h-px bg-[#8B6F3E] mb-6" />
 
           {/* Subtext */}
-          <p className="font-[family-name:var(--font-dm-sans)] text-[15px] text-[#8A8A8A] leading-[1.7] mb-10 max-w-sm">
-            Sushis, makis et rolls préparés avec soin.
-            <br />
-            Livraison &amp; à emporter à Le Mans.
+          <p className="font-[family-name:var(--font-dm-sans)] text-[15px] text-[#8A8A8A] leading-[1.7] mb-10 max-w-sm whitespace-pre-line">
+            {t.hero.sub}
           </p>
 
           {/* CTA buttons */}
@@ -76,13 +75,13 @@ export default function HeroSection() {
               href="#menu"
               className="inline-flex items-center justify-center gap-2 px-8 py-[14px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.1em] uppercase font-[family-name:var(--font-dm-sans)] font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors duration-200"
             >
-              Commander maintenant
+              {t.hero.cta}
             </Link>
             <Link
               href="#menu"
               className="inline-flex items-center justify-center gap-2 px-8 py-[14px] border border-[#C8A96E]/50 text-[#C8A96E] text-[13px] tracking-[0.1em] uppercase font-[family-name:var(--font-dm-sans)] font-normal rounded-[4px] hover:bg-[#C8A96E]/10 hover:border-[#C8A96E] transition-all duration-200"
             >
-              Voir le menu
+              {t.hero.ctaMenu}
             </Link>
           </div>
 
@@ -98,7 +97,7 @@ export default function HeroSection() {
       {/* Scroll indicator */}
       <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
         <span className="text-[10px] tracking-[0.18em] uppercase text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
-          Défiler
+          {t.hero.scroll}
         </span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A8A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <polyline points="6 9 12 15 18 9" />
