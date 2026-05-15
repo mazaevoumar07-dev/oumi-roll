@@ -76,7 +76,7 @@ export default function CartDrawer() {
           "fixed top-0 right-0 bottom-0 z-[71] w-full sm:w-[420px]",
           "flex flex-col bg-[#1A1A1A] border-l border-[#2A2A2A]",
           "transition-transform duration-300 ease-in-out",
-          isOpen ? "translate-x-0" : "translate-x-full",
+          isOpen ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none",
         ].join(" ")}
       >
         {/* ── Header ── */}

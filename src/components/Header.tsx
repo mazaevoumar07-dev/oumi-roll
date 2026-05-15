@@ -178,7 +178,7 @@ export default function Header() {
           "fixed top-[72px] left-0 right-0 bottom-0 z-40 bg-[#0D0D0D] border-t border-[#2A2A2A]",
           "flex flex-col gap-12 px-7 pt-12 pb-10 overflow-y-auto",
           "transition-transform duration-300 ease-in-out lg:hidden",
-          menuOpen ? "translate-x-0" : "translate-x-full",
+          menuOpen ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none",
         ].join(" ")}
         aria-hidden={!menuOpen}
       >

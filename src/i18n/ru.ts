@@ -35,6 +35,8 @@ const ru: Dict = {
     unavailable: "Недоступно",
     close: "Закрыть",
     outOfStock: "Нет в наличии",
+    menuEmpty: "Меню временно недоступно",
+    menuEmptySub: "Загляните позже",
   },
 
   cart: {

@@ -91,10 +91,10 @@ export default function MenuSection() {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 gap-3">
             <span className="font-[family-name:var(--font-cormorant)] text-[26px] text-[#8A8A8A] font-light">
-              Menu temporairement indisponible
+              {t.menu.menuEmpty}
             </span>
             <span className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#2A2A2A]">
-              Revenez bientôt
+              {t.menu.menuEmptySub}
             </span>
           </div>
         ) : (
@@ -315,7 +315,7 @@ function MenuModal({ item, description, onClose }: { item: MenuItem; description
           </p>
 
           {/* Price + controls */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Price */}
             <div className="flex items-baseline gap-2">
               {item.originalPrice && (
@@ -430,8 +430,8 @@ function SushiIcon({ size = 64 }: { size?: number }) {
         return (
           <circle
             key={deg}
-            cx={32 + 20 * Math.cos(r)}
-            cy={32 + 20 * Math.sin(r)}
+            cx={+(32 + 20 * Math.cos(r)).toFixed(4)}
+            cy={+(32 + 20 * Math.sin(r)).toFixed(4)}
             r="2"
             fill="#C8A96E"
             opacity="0.6"

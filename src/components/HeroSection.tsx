@@ -50,13 +50,13 @@ export default function HeroSection() {
 
           {/* H1 */}
           <h1 className="font-[family-name:var(--font-cormorant)] leading-[1.05] mb-6">
-            <span className="block text-[52px] sm:text-[68px] lg:text-[80px] font-light text-[#F0EAD6] tracking-[0.02em]">
+            <span className="block text-[36px] sm:text-[52px] lg:text-[80px] font-light text-[#F0EAD6] tracking-[0.02em]">
               {t.hero.line1}
             </span>
-            <span className="block text-[52px] sm:text-[68px] lg:text-[80px] font-semibold italic text-[#C8A96E] tracking-[0.02em]">
+            <span className="block text-[36px] sm:text-[52px] lg:text-[80px] font-semibold italic text-[#C8A96E] tracking-[0.02em]">
               {t.hero.line2}
             </span>
-            <span className="block text-[52px] sm:text-[68px] lg:text-[80px] font-light text-[#F0EAD6] tracking-[0.02em]">
+            <span className="block text-[36px] sm:text-[52px] lg:text-[80px] font-light text-[#F0EAD6] tracking-[0.02em]">
               {t.hero.line3}
             </span>
           </h1>
@@ -152,8 +152,8 @@ function SushiDeco() {
       {/* Small accent circles on the mid ring */}
       {[0, 60, 120, 180, 240, 300].map((deg) => {
         const rad = (deg * Math.PI) / 180;
-        const x = 210 + 148 * Math.cos(rad);
-        const y = 210 + 148 * Math.sin(rad);
+        const x = +(210 + 148 * Math.cos(rad)).toFixed(4);
+        const y = +(210 + 148 * Math.sin(rad)).toFixed(4);
         return <circle key={deg} cx={x} cy={y} r="3" fill="#C8A96E" opacity="0.7" />;
       })}
     </svg>

@@ -30,6 +30,8 @@ export interface Dict {
     unavailable: string;
     close: string;
     outOfStock: string;
+    menuEmpty: string;
+    menuEmptySub: string;
   };
   cart: {
     title: string;
@@ -93,6 +95,8 @@ const fr: Dict = {
     unavailable: "Indisponible",
     close: "Fermer",
     outOfStock: "Indisponible",
+    menuEmpty: "Menu temporairement indisponible",
+    menuEmptySub: "Revenez bientôt",
   },
 
   cart: {

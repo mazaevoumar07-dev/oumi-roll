@@ -35,6 +35,8 @@ const en: Dict = {
     unavailable: "Unavailable",
     close: "Close",
     outOfStock: "Out of stock",
+    menuEmpty: "Menu temporarily unavailable",
+    menuEmptySub: "Come back soon",
   },
 
   cart: {
