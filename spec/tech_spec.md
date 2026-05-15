@@ -11,8 +11,8 @@
 
 | Компонент | Технология | Зачем |
 |---|---|---|
-| Frontend | HTML / CSS / JS (готово) | Статичный сайт |
-| Backend | Node.js + Express | Сервер и API |
+| Frontend | Next.js 15 + TypeScript (готово) | App Router, SSR, статичные страницы |
+| Backend | Next.js API Routes (App Router) | Сервер и API внутри того же проекта |
 | База данных | PostgreSQL через Neon | Хранение заказов, меню, пользователей |
 | Оплата | Stripe | Оплата картой, Apple Pay, Google Pay |
 | SMS | Twilio | Уведомления клиентам об акциях |
@@ -52,47 +52,48 @@ Frontend и backend деплоятся на Vercel:
 ## Структура проекта
 
 ```
-sushi-roll/
-├── frontend/               ← уже готово
-│   ├── index.html
-│   ├── menu.html
-│   └── ...
+oumi-roll/
+├── src/
+│   ├── app/                        ← Next.js App Router
+│   │   ├── page.tsx                → Главная (Hero + Menu)
+│   │   ├── commande/page.tsx       → Оформление заказа
+│   │   ├── paiement/[id]/page.tsx  → Оплата (Stripe)
+│   │   ├── suivi/[id]/page.tsx     → Отслеживание заказа
+│   │   ├── connexion/page.tsx      → Вход / Регистрация
+│   │   ├── admin/                  → Панель администратора
+│   │   └── api/                    ← API Routes (backend)
+│   │       ├── menu/route.ts           → GET  /api/menu
+│   │       ├── menu/[id]/route.ts      → GET  /api/menu/:id
+│   │       ├── orders/route.ts         → POST /api/orders
+│   │       ├── orders/[id]/route.ts    → GET  /api/orders/:id
+│   │       ├── orders/[id]/cancel/route.ts  → POST /api/orders/:id/cancel
+│   │       ├── auth/register/route.ts  → POST /api/auth/register
+│   │       ├── auth/login/route.ts     → POST /api/auth/login
+│   │       ├── auth/logout/route.ts    → POST /api/auth/logout
+│   │       ├── delivery/calculate/route.ts → POST /api/delivery/calculate
+│   │       ├── payment/create-intent/route.ts → POST /api/payment/intent
+│   │       ├── payment/webhook/route.ts    → POST /api/payment/webhook
+│   │       ├── courier/location/route.ts   → POST /api/courier/location
+│   │       └── admin/
+│   │           ├── menu/route.ts       → GET, POST /api/admin/menu
+│   │           ├── menu/[id]/route.ts  → PATCH /api/admin/menu/:id
+│   │           ├── orders/route.ts     → GET /api/admin/orders
+│   │           ├── orders/[id]/route.ts → PATCH /api/admin/orders/:id
+│   │           ├── sms/send/route.ts   → POST /api/admin/sms/send
+│   │           └── promotions/route.ts → GET, PATCH /api/admin/promotions
+│   ├── components/                 ← UI-компоненты
+│   ├── context/                    ← React Context (корзина, auth)
+│   ├── data/                       ← статичные данные (меню)
+│   ├── lib/                        ← общий код (db, helpers)
+│   │   ├── db.ts                   → подключение к Neon (PostgreSQL)
+│   │   ├── auth.ts                 → проверка JWT токенов
+│   │   └── delivery.ts             → расчёт стоимости доставки
+│   └── types/                      ← TypeScript типы
 │
-├── api/                    ← backend (Vercel serverless functions)
-│   ├── menu/
-│   │   ├── index.js        → GET  /api/menu
-│   │   └── [id].js         → GET  /api/menu/:id
-│   ├── orders/
-│   │   ├── index.js        → POST /api/orders
-│   │   └── [id]/
-│   │       ├── index.js    → GET  /api/orders/:id
-│   │       ├── cancel.js   → POST /api/orders/:id/cancel
-│   │       └── status.js   → PATCH /api/orders/:id/status
-│   ├── auth/
-│   │   ├── register.js     → POST /api/auth/register
-│   │   ├── login.js        → POST /api/auth/login
-│   │   └── logout.js       → POST /api/auth/logout
-│   ├── delivery/
-│   │   └── calculate.js    → POST /api/delivery/calculate
-│   ├── payment/
-│   │   ├── intent.js       → POST /api/payment/intent
-│   │   └── webhook.js      → POST /api/payment/webhook
-│   └── admin/
-│       ├── menu/
-│       │   ├── index.js    → GET, POST /api/admin/menu
-│       │   └── [id].js     → PATCH, DELETE /api/admin/menu/:id
-│       ├── orders/
-│       │   ├── index.js    → GET /api/admin/orders
-│       │   └── [id].js     → PATCH /api/admin/orders/:id
-│       └── sms/
-│           └── send.js     → POST /api/admin/sms/send
-│
-├── lib/                    ← общий код (db, helpers)
-│   ├── db.js               → подключение к Neon (PostgreSQL)
-│   ├── auth.js             → проверка JWT токенов
-│   └── delivery.js         → расчёт стоимости доставки
-│
-├── vercel.json             ← конфигурация Vercel
+├── public/                         ← статичные файлы
+├── .gitignore
+├── next.config.ts
+├── tailwind.config.ts
 └── package.json
 ```
 
