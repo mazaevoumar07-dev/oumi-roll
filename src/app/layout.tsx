@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import CartDrawer from "@/components/CartDrawer";
 import { CartProvider } from "@/context/CartContext";
 import { AuthProvider } from "@/context/AuthContext";
+import { LangProvider } from "@/context/LangContext";
 
 const cormorant = Cormorant_Garamond({
   variable: "--font-cormorant",
@@ -31,13 +32,15 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`${cormorant.variable} ${dmSans.variable}`}>
       <body className="min-h-screen flex flex-col">
-        <AuthProvider>
-          <CartProvider>
-            <Header />
-            <main className="flex-1 pt-[72px]">{children}</main>
-            <CartDrawer />
-          </CartProvider>
-        </AuthProvider>
+        <LangProvider>
+          <AuthProvider>
+            <CartProvider>
+              <Header />
+              <main className="flex-1 pt-[72px]">{children}</main>
+              <CartDrawer />
+            </CartProvider>
+          </AuthProvider>
+        </LangProvider>
       </body>
     </html>
   );

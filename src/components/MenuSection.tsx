@@ -2,21 +2,43 @@
 
 import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
+import { useLang } from "@/context/LangContext";
 import { MENU_ITEMS, type MenuItem } from "@/data/menu";
+import { getMenuItems } from "@/lib/menu-storage";
 
-const CATEGORIES = ["Tous", "Makis", "California", "Temaki", "Spécialités"] as const;
+const CATEGORY_KEYS = ["ALL", "Makis", "California", "Temaki", "Spécialités"] as const;
+type CategoryKey = typeof CATEGORY_KEYS[number];
 
 /* ===== MAIN SECTION ===== */
 
 export default function MenuSection() {
-  const [activeCategory, setActiveCategory] = useState<string>("Tous");
+  const [activeCategory, setActiveCategory] = useState<CategoryKey>("ALL");
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [items, setItems] = useState<MenuItem[]>(MENU_ITEMS);
+  const { t, lang } = useLang();
   const { addItem } = useCart();
 
+  useEffect(() => {
+    setItems(getMenuItems());
+  }, []);
+
+  const visible = items.filter(i => i.available);
   const filtered =
-    activeCategory === "Tous"
-      ? MENU_ITEMS
-      : MENU_ITEMS.filter(i => i.category === activeCategory);
+    activeCategory === "ALL"
+      ? visible
+      : visible.filter(i => i.category === activeCategory);
+
+  function getCategoryLabel(key: CategoryKey): string {
+    if (key === "ALL") return t.menu.catAll;
+    if (key === "Spécialités") return t.menu.catSpecial;
+    return key;
+  }
+
+  function getDescription(item: MenuItem): string {
+    if (lang === "EN") return item.descriptions?.en ?? item.description;
+    if (lang === "RU") return item.descriptions?.ru ?? item.description;
+    return item.description;
+  }
 
   function handleQuickAdd(item: MenuItem, e: React.MouseEvent) {
     e.stopPropagation();
@@ -36,20 +58,20 @@ export default function MenuSection() {
           <div className="flex items-center gap-3 mb-5">
             <div className="w-8 h-px bg-[#C8A96E]" />
             <span className="text-[11px] tracking-[0.22em] uppercase text-[#C8A96E] font-[family-name:var(--font-dm-sans)]">
-              Notre Carte
+              {t.menu.eyebrow}
             </span>
           </div>
           <h2 className="font-[family-name:var(--font-cormorant)] text-[36px] sm:text-[48px] lg:text-[56px] font-light text-[#F0EAD6] leading-[1.1] tracking-[0.02em] mb-4">
-            Menu
+            {t.menu.title}
           </h2>
           <p className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#8A8A8A] leading-[1.7] max-w-md">
-            Makis, californias et spécialités préparés avec des produits frais sélectionnés chaque matin.
+            {t.menu.sub}
           </p>
         </div>
 
         {/* Category tabs */}
         <div className="flex items-center gap-2 mb-10 overflow-x-auto pb-1 -mx-6 px-6 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
-          {CATEGORIES.map((cat) => (
+          {CATEGORY_KEYS.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -60,7 +82,7 @@ export default function MenuSection() {
                   : "border-[#2A2A2A] text-[#8A8A8A] hover:border-[#C8A96E]/40 hover:text-[#C8A96E]/70",
               ].join(" ")}
             >
-              {cat}
+              {getCategoryLabel(cat)}
             </button>
           ))}
         </div>
@@ -69,10 +91,10 @@ export default function MenuSection() {
         {filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 gap-3">
             <span className="font-[family-name:var(--font-cormorant)] text-[26px] text-[#8A8A8A] font-light">
-              Menu temporairement indisponible
+              {t.menu.menuEmpty}
             </span>
             <span className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#2A2A2A]">
-              Revenez bientôt
+              {t.menu.menuEmptySub}
             </span>
           </div>
         ) : (
@@ -81,6 +103,7 @@ export default function MenuSection() {
               <MenuCard
                 key={item.id}
                 item={item}
+                description={getDescription(item)}
                 onOpen={() => setSelectedItem(item)}
                 onQuickAdd={(e) => handleQuickAdd(item, e)}
               />
@@ -94,6 +117,7 @@ export default function MenuSection() {
       {selectedItem && (
         <MenuModal
           item={selectedItem}
+          description={getDescription(selectedItem)}
           onClose={() => setSelectedItem(null)}
         />
       )}
@@ -105,13 +129,16 @@ export default function MenuSection() {
 
 function MenuCard({
   item,
+  description,
   onOpen,
   onQuickAdd,
 }: {
   item: MenuItem;
+  description: string;
   onOpen: () => void;
   onQuickAdd: (e: React.MouseEvent) => void;
 }) {
+  const { t } = useLang();
   return (
     <article
       className={[
@@ -131,7 +158,7 @@ function MenuCard({
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
           {!item.available && (
             <span className="px-2.5 py-[5px] bg-[#0D0D0D]/90 border border-[#2A2A2A] text-[10px] tracking-[0.1em] uppercase text-[#8A8A8A] rounded-[2px] font-[family-name:var(--font-dm-sans)]">
-              Indisponible
+              {t.menu.unavailable}
             </span>
           )}
           {item.originalPrice && item.available && (
@@ -162,7 +189,7 @@ function MenuCard({
 
         {/* Description */}
         <p className="font-[family-name:var(--font-dm-sans)] text-[12.5px] text-[#8A8A8A] leading-[1.65] line-clamp-2 flex-1">
-          {item.description}
+          {description}
         </p>
 
         {/* Price + button */}
@@ -184,7 +211,7 @@ function MenuCard({
           <button
             onClick={onQuickAdd}
             disabled={!item.available}
-            aria-label={item.available ? `Ajouter ${item.name} au panier` : "Indisponible"}
+            aria-label={item.available ? `${t.menu.add} ${item.name}` : t.menu.unavailable}
             className={[
               "flex items-center justify-center w-9 h-9 rounded-[4px] border transition-all duration-200",
               item.available
@@ -203,8 +230,9 @@ function MenuCard({
 
 /* ===== MENU MODAL ===== */
 
-function MenuModal({ item, onClose }: { item: MenuItem; onClose: () => void }) {
+function MenuModal({ item, description, onClose }: { item: MenuItem; description: string; onClose: () => void }) {
   const { addItem } = useCart();
+  const { t } = useLang();
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
 
@@ -252,7 +280,7 @@ function MenuModal({ item, onClose }: { item: MenuItem; onClose: () => void }) {
           <button
             onClick={onClose}
             className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center bg-[#0D0D0D]/80 border border-[#2A2A2A] rounded-full text-[#8A8A8A] hover:text-[#F0EAD6] hover:border-[#C8A96E]/40 transition-colors"
-            aria-label="Fermer"
+            aria-label={t.menu.close}
           >
             <XIcon />
           </button>
@@ -261,7 +289,7 @@ function MenuModal({ item, onClose }: { item: MenuItem; onClose: () => void }) {
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
             {!item.available && (
               <span className="px-2.5 py-[5px] bg-[#0D0D0D]/90 border border-[#2A2A2A] text-[10px] tracking-[0.1em] uppercase text-[#8A8A8A] rounded-[2px] font-[family-name:var(--font-dm-sans)]">
-                Indisponible
+                {t.menu.unavailable}
               </span>
             )}
             {item.originalPrice && item.available && (
@@ -283,11 +311,11 @@ function MenuModal({ item, onClose }: { item: MenuItem; onClose: () => void }) {
           </h3>
 
           <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] leading-[1.75] mb-6">
-            {item.description}
+            {description}
           </p>
 
           {/* Price + controls */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Price */}
             <div className="flex items-baseline gap-2">
               {item.originalPrice && (
@@ -337,16 +365,16 @@ function MenuModal({ item, onClose }: { item: MenuItem; onClose: () => void }) {
                   {added ? (
                     <>
                       <CheckIcon />
-                      <span>Ajouté !</span>
+                      <span>{t.menu.add} ✓</span>
                     </>
                   ) : (
-                    <span>Ajouter — €{(item.price * qty).toFixed(2)}</span>
+                    <span>{t.menu.add} — €{(item.price * qty).toFixed(2)}</span>
                   )}
                 </button>
               </div>
             ) : (
               <span className="text-[12px] tracking-[0.06em] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
-                Temporairement indisponible
+                {t.menu.outOfStock}
               </span>
             )}
           </div>
@@ -402,8 +430,8 @@ function SushiIcon({ size = 64 }: { size?: number }) {
         return (
           <circle
             key={deg}
-            cx={32 + 20 * Math.cos(r)}
-            cy={32 + 20 * Math.sin(r)}
+            cx={+(32 + 20 * Math.cos(r)).toFixed(4)}
+            cy={+(32 + 20 * Math.sin(r)).toFixed(4)}
             r="2"
             fill="#C8A96E"
             opacity="0.6"

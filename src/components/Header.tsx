@@ -4,26 +4,24 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-
-const NAV_LINKS = [
-  { href: "#menu",    label: "Menu" },
-  { href: "#about",   label: "À propos" },
-  { href: "#contact", label: "Contact" },
-];
-
-const LANGS = ["FR", "EN", "RU"] as const;
-type Lang = typeof LANGS[number];
+import { useLang } from "@/context/LangContext";
+import { LANGS } from "@/i18n";
 
 export default function Header() {
   const [scrolled,     setScrolled]     = useState(false);
   const [menuOpen,     setMenuOpen]     = useState(false);
-  const [activeLang,   setActiveLang]   = useState<Lang>("FR");
   const [userDropOpen, setUserDropOpen] = useState(false);
   const { itemCount, openCart } = useCart();
   const { user, logout } = useAuth();
+  const { lang, t, setLang } = useLang();
   const dropRef = useRef<HTMLDivElement>(null);
 
-  // Close user dropdown on outside click
+  const NAV_LINKS = [
+    { href: "#menu",    label: t.nav.menu },
+    { href: "#about",   label: t.nav.about },
+    { href: "#contact", label: t.nav.contact },
+  ];
+
   useEffect(() => {
     function onClickOut(e: MouseEvent) {
       if (dropRef.current && !dropRef.current.contains(e.target as Node)) setUserDropOpen(false);
@@ -32,35 +30,18 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", onClickOut);
   }, []);
 
-  // Scroll — glassmorphism
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Lock body scroll when mobile menu is open
   useEffect(() => {
     document.body.style.overflow = menuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [menuOpen]);
 
-  // Restore saved language
-  useEffect(() => {
-    const saved = localStorage.getItem("lang") as Lang | null;
-    if (saved && (LANGS as readonly string[]).includes(saved)) setActiveLang(saved);
-  }, []);
-
-  function handleLang(lang: Lang) {
-    setActiveLang(lang);
-    localStorage.setItem("lang", lang);
-    document.documentElement.lang = lang.toLowerCase();
-    // TODO: plug into i18n system
-  }
-
-  function closeMobileMenu() {
-    setMenuOpen(false);
-  }
+  function closeMobileMenu() { setMenuOpen(false); }
 
   return (
     <>
@@ -108,18 +89,18 @@ export default function Header() {
           <div className="flex items-center gap-2">
 
             {/* Language switcher (from 640px) */}
-            <div className="hidden sm:flex items-center gap-1 mr-1" aria-label="Changer la langue">
-              {LANGS.map((lang, i) => (
-                <span key={lang} className="flex items-center gap-1">
+            <div className="hidden sm:flex items-center gap-1 mr-1" aria-label={t.nav.changeLang}>
+              {LANGS.map((l, i) => (
+                <span key={l} className="flex items-center gap-1">
                   {i > 0 && <span className="text-[#2A2A2A] text-[12px] select-none">|</span>}
                   <button
-                    onClick={() => handleLang(lang)}
+                    onClick={() => setLang(l)}
                     className={[
                       "text-[11.5px] tracking-[0.06em] px-0.5 py-1 transition-colors duration-200",
-                      activeLang === lang ? "text-[#C8A96E]" : "text-[#8A8A8A] hover:text-[#C8A96E]",
+                      lang === l ? "text-[#C8A96E]" : "text-[#8A8A8A] hover:text-[#C8A96E]",
                     ].join(" ")}
                   >
-                    {lang}
+                    {l}
                   </button>
                 </span>
               ))}
@@ -129,7 +110,7 @@ export default function Header() {
             <button
               onClick={openCart}
               className="relative flex items-center justify-center w-10 h-10 text-[#8A8A8A] hover:text-[#C8A96E] hover:bg-[#C8A96E]/8 rounded-[4px] transition-colors duration-200"
-              aria-label={`Panier (${itemCount} article${itemCount !== 1 ? "s" : ""})`}
+              aria-label={`${t.cart.title} (${itemCount})`}
             >
               <CartIcon />
               {itemCount > 0 && (
@@ -160,7 +141,7 @@ export default function Header() {
                       className="w-full flex items-center gap-2.5 px-4 py-3 text-[12px] text-[#8A8A8A] hover:text-[#F0EAD6] hover:bg-[#2A2A2A] transition-colors font-[family-name:var(--font-dm-sans)]"
                     >
                       <LogoutIcon />
-                      Se déconnecter
+                      {t.nav.logout}
                     </button>
                   </div>
                 )}
@@ -171,7 +152,7 @@ export default function Header() {
                 className="hidden lg:flex items-center gap-2 px-[18px] py-[9px] border border-[#C8A96E]/60 text-[#C8A96E] text-[12.5px] tracking-[0.06em] rounded-[4px] hover:bg-[#C8A96E]/10 hover:border-[#C8A96E] transition-all duration-200"
               >
                 <UserIcon />
-                <span>Connexion</span>
+                <span>{t.nav.login}</span>
               </Link>
             )}
 
@@ -197,7 +178,7 @@ export default function Header() {
           "fixed top-[72px] left-0 right-0 bottom-0 z-40 bg-[#0D0D0D] border-t border-[#2A2A2A]",
           "flex flex-col gap-12 px-7 pt-12 pb-10 overflow-y-auto",
           "transition-transform duration-300 ease-in-out lg:hidden",
-          menuOpen ? "translate-x-0" : "translate-x-full",
+          menuOpen ? "translate-x-0 pointer-events-auto" : "translate-x-full pointer-events-none",
         ].join(" ")}
         aria-hidden={!menuOpen}
       >
@@ -221,17 +202,17 @@ export default function Header() {
 
         {/* Language */}
         <div className="flex items-center gap-2.5">
-          {LANGS.map((lang, i) => (
-            <span key={lang} className="flex items-center gap-2.5">
+          {LANGS.map((l, i) => (
+            <span key={l} className="flex items-center gap-2.5">
               {i > 0 && <span className="text-[#2A2A2A] text-sm select-none">|</span>}
               <button
-                onClick={() => handleLang(lang)}
+                onClick={() => { setLang(l); closeMobileMenu(); }}
                 className={[
                   "text-sm tracking-[0.1em] py-1 transition-colors duration-200",
-                  activeLang === lang ? "text-[#C8A96E]" : "text-[#8A8A8A] hover:text-[#C8A96E]",
+                  lang === l ? "text-[#C8A96E]" : "text-[#8A8A8A] hover:text-[#C8A96E]",
                 ].join(" ")}
               >
-                {lang}
+                {l}
               </button>
             </span>
           ))}
@@ -241,14 +222,14 @@ export default function Header() {
         {user ? (
           <div className="flex flex-col gap-2">
             <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A]">
-              Connecté en tant que <span className="text-[#F0EAD6]">{user.prenom} {user.nom}</span>
+              {user.prenom} {user.nom}
             </p>
             <button
               onClick={() => { logout(); closeMobileMenu(); }}
               className="flex items-center justify-center gap-2 w-full px-6 py-[13px] border border-[#2A2A2A] text-[#8A8A8A] text-[12.5px] tracking-[0.06em] rounded-[4px] hover:border-[#C0392B]/40 hover:text-[#C0392B] transition-all duration-200 font-[family-name:var(--font-dm-sans)]"
             >
               <LogoutIcon />
-              <span>Se déconnecter</span>
+              <span>{t.nav.logout}</span>
             </button>
           </div>
         ) : (
@@ -258,7 +239,7 @@ export default function Header() {
             className="flex items-center justify-center gap-2 w-full px-6 py-[13px] border border-[#C8A96E]/60 text-[#C8A96E] text-[12.5px] tracking-[0.06em] rounded-[4px] hover:bg-[#C8A96E]/10 hover:border-[#C8A96E] transition-all duration-200 font-[family-name:var(--font-dm-sans)]"
           >
             <UserIcon />
-            <span>Connexion</span>
+            <span>{t.nav.login}</span>
           </Link>
         )}
       </div>

@@ -1,9 +1,15 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { getOrder, cancelOrder, type Order } from "@/types/order";
+import type { LatLng } from "@/components/CourierMap";
+
+const CourierMap = dynamic(() => import("@/components/CourierMap"), { ssr: false });
+
+const MAP_POLL_INTERVAL = 10_000;
 
 /* ===== CONSTANTS ===== */
 
@@ -47,10 +53,22 @@ function fmt(s: number): string {
 
 export default function SuiviPage() {
   const { id } = useParams<{ id: string }>();
-  const [order, setOrder] = useState<Order | null | undefined>(undefined);
+  const [order, setOrder]     = useState<Order | null | undefined>(undefined);
   const [secondsLeft, setSecondsLeft] = useState(0);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [courierPos, setCourierPos]   = useState<LatLng | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mapPollRef   = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const pollCourier = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/courier/${id}`);
+      const data = await res.json() as { lat: number; lng: number } | null;
+      setCourierPos(data ?? null);
+    } catch {
+      // keep last known position on network error
+    }
+  }, [id]);
 
   useEffect(() => {
     // Load from localStorage and start countdown inside callbacks (not synchronously in effect body)
@@ -79,6 +97,18 @@ export default function SuiviPage() {
       if (countdownRef.current) { clearInterval(countdownRef.current); countdownRef.current = null; }
     };
   }, [id]);
+
+  // Start/stop map polling based on order status
+  useEffect(() => {
+    if (order?.status === "en_livraison") {
+      pollCourier();
+      mapPollRef.current = setInterval(pollCourier, MAP_POLL_INTERVAL);
+    } else {
+      if (mapPollRef.current) { clearInterval(mapPollRef.current); mapPollRef.current = null; }
+      if (order?.status === "livre") setCourierPos(null);
+    }
+    return () => { if (mapPollRef.current) { clearInterval(mapPollRef.current); mapPollRef.current = null; } };
+  }, [order?.status, pollCourier]);
 
   function confirmCancel() {
     if (!order) return;
@@ -229,6 +259,35 @@ export default function SuiviPage() {
             </ol>
           )}
         </div>
+
+        {/* GPS map — shown only during delivery */}
+        {order.status === "en_livraison" && (
+          <>
+            <div className="h-px bg-[#2A2A2A] mb-6" />
+            <div className="mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[11px] tracking-[0.2em] uppercase text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
+                  Suivi du livreur
+                </p>
+                {courierPos && (
+                  <span className="flex items-center gap-1.5 text-[11px] text-[#27AE60] font-[family-name:var(--font-dm-sans)]">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#27AE60] animate-pulse" />
+                    En direct
+                  </span>
+                )}
+              </div>
+              {courierPos ? (
+                <CourierMap courier={courierPos} />
+              ) : (
+                <div className="flex items-center justify-center h-[120px] bg-[#1A1A1A] border border-[#2A2A2A] rounded-[4px]">
+                  <p className="text-[12.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)] text-center px-6">
+                    Le livreur n&apos;a pas encore partagé sa position.
+                  </p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Estimated time */}
         {!isCancelled && order.status !== "livre" && (
