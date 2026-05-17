@@ -143,7 +143,8 @@ oumi-roll/
 | total_amount | NUMERIC(8,2) | Итоговая сумма (заказ + доставка) |
 | status | ENUM | Статус (см. ниже) |
 | payment_status | ENUM('pending','paid','failed') | Статус оплаты |
-| stripe_payment_id | TEXT | ID платежа в Stripe |
+| stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe (UNIQUE — защита от дублей при повторных webhook) |
+| tracking_token | UUID | Случайный токен для доступа к статусу заказа без авторизации |
 | created_at | TIMESTAMP | Время создания заказа |
 | cancelled_at | TIMESTAMP | Время отмены (NULL если не отменён) |
 
@@ -199,9 +200,9 @@ oumi-roll/
 
 | Метод | Путь | Описание | Доступ |
 |---|---|---|---|
-| POST | /api/orders | Создать заказ | Публичный |
-| GET | /api/orders/:id | Статус заказа по ID | Публичный |
-| POST | /api/orders/:id/cancel | Отменить заказ (3 минуты) | Публичный |
+| POST | /api/orders | Создать заказ (только через Stripe webhook — см. ниже) | Только Stripe |
+| GET | /api/orders/:id | Статус заказа по ID | `?token=<tracking_token>` или авторизованный клиент |
+| POST | /api/orders/:id/cancel | Отменить заказ (3 минуты) | `?token=<tracking_token>` или авторизованный клиент |
 
 ### Аутентификация
 
@@ -263,14 +264,16 @@ oumi-roll/
 ## Аутентификация
 
 ### Клиент
-- JWT токен, хранится в `localStorage`
+- JWT токен, хранится в `httpOnly cookie` (недоступен из JavaScript — защита от XSS)
 - Логин: номер телефона + пароль
 - Токен истекает через 7 дней
+- Cookie: `Secure`, `SameSite=Strict`
 
 ### Администратор
 - Заходит на страницу `/admin/login` — отдельная страница, скрытая от обычных клиентов
 - Вводит логин (email или имя) и пароль
-- Получает JWT с ролью `admin`, хранится в `httpOnly cookie` (безопаснее чем localStorage)
+- Получает JWT с ролью `admin`, хранится в `httpOnly cookie`
+- Cookie: `Secure`, `SameSite=Strict`
 - Этот токен даёт доступ ко всем `/api/admin/*` эндпоинтам
 - Аккаунт администратора создаётся один раз разработчиком (вручную в базе данных) — регистрации нет
 - Только один администратор — владелец ресторана
@@ -305,8 +308,10 @@ oumi-roll/
 
 ### Stripe (оплата)
 - Используется **Stripe Payment Intents API**
-- Заказ создаётся только после подтверждения оплаты (через webhook)
+- Заказ создаётся только после подтверждения оплаты (через webhook `payment_intent.succeeded`)
 - Данные карты никогда не проходят через наш сервер — только через Stripe
+- **Idempotency webhook:** перед созданием заказа обработчик выполняет `SELECT id FROM orders WHERE stripe_payment_id = $1`. Если строка уже есть — webhook игнорируется и возвращается `200 OK`. Stripe гарантирует "at-least-once", а не "exactly-once", поэтому один и тот же webhook может прийти несколько раз.
+- **Верификация подписи:** каждый входящий webhook проверяется через `stripe.webhooks.constructEvent()` с `STRIPE_WEBHOOK_SECRET` — запросы без валидной подписи отклоняются с `400`.
 - **Возврат денег при отмене:** если клиент отменяет оплаченный заказ в течение 3 минут, backend вызывает Stripe Refunds API → деньги возвращаются на карту клиента за 5–10 рабочих дней
 
 ### Twilio (SMS)
@@ -371,8 +376,10 @@ RESTAURANT_LNG=0.1985
 
 - SQL-запросы только через параметризацию (защита от SQL-инъекций)
 - Все `/api/admin/*` эндпоинты проверяют JWT с ролью `admin`
-- Stripe webhook проверяется через подпись (`stripe-signature` header)
+- Stripe webhook проверяется через подпись (`stripe-signature` header) и защищён от дублей через `UNIQUE` на `stripe_payment_id`
 - CORS настроен только на домен ресторана
 - Пароли никогда не хранятся в открытом виде
+- JWT токены (клиент и администратор) хранятся исключительно в `httpOnly cookie` — JavaScript на странице не имеет к ним доступа, что исключает кражу через XSS
+- Доступ к данным заказа (`GET /api/orders/:id`) требует `tracking_token` из URL или авторизованную сессию — анонимный доступ к чужим заказам невозможен
 
 ---
