@@ -32,7 +32,7 @@ export default function HeroSection() {
       <DecoCircles />
 
       {/* Content */}
-      <div className="relative z-10 max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 w-full grid lg:grid-cols-2 gap-16 items-center py-12 lg:py-14">
+      <div className="relative z-10 max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 w-full grid lg:grid-cols-2 gap-16 items-center py-8">
 
         {/* Left: text */}
         <div className="flex flex-col items-start">
