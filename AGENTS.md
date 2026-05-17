@@ -24,7 +24,8 @@ git checkout -b <тип>/<название>
 1. **Закоммить** — `git add <изменённые файлы>` + `git commit -m "..."`
 2. **Запушить** — `git push origin <текущая ветка>`
 3. **Создать Pull Request** — `gh pr create --base main` с описанием что изменено
-4. **Смержить PR** — `gh pr merge <номер> --merge`
+4. **Смержить PR** — `gh pr merge <номер> --merge`  
+   *(GitHub автоматически удаляет feature-ветку после мержа)*
 5. **Вернуться на main** — `git checkout main && git pull origin main`
 
 ### Исключения (не делать автоматически, а спросить пользователя):
