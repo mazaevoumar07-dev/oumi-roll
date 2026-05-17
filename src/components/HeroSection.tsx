@@ -16,7 +16,7 @@ export default function HeroSection() {
   }, []);
 
   return (
-    <section className="relative min-h-[calc(100vh-72px)] flex flex-col justify-center overflow-hidden bg-[#0D0D0D]">
+    <section className="relative flex flex-col overflow-hidden bg-[#0D0D0D]">
 
       {/* Background radial glow */}
       <div
@@ -32,7 +32,7 @@ export default function HeroSection() {
       <DecoCircles />
 
       {/* Content */}
-      <div className="relative z-10 max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 w-full grid lg:grid-cols-2 gap-16 items-center py-24 lg:py-0">
+      <div className="relative z-10 max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 w-full grid lg:grid-cols-2 gap-16 items-center py-12 lg:py-14">
 
         {/* Left: text */}
         <div className="flex flex-col items-start">
@@ -92,16 +92,6 @@ export default function HeroSection() {
           <SushiDeco />
         </div>
 
-      </div>
-
-      {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-bounce">
-        <span className="text-[10px] tracking-[0.18em] uppercase text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
-          {t.hero.scroll}
-        </span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#8A8A8A" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
       </div>
 
     </section>
