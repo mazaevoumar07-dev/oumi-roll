@@ -83,9 +83,8 @@ export default function Footer() {
             </h3>
             <nav className="flex flex-col gap-3">
               {[
-                { href: "#menu",    label: t.nav.menu },
                 { href: "#about",   label: t.nav.about },
-                { href: "#contact", label: t.nav.contact },
+                { href: "#reviews", label: t.nav.reviews },
               ].map(({ href, label }) => (
                 <Link
                   key={href}
