@@ -19,7 +19,7 @@ export default function Header() {
   const NAV_LINKS = [
     { href: "#menu",    label: t.nav.menu },
     { href: "#about",   label: t.nav.about },
-    { href: "#contact", label: t.nav.contact },
+    { href: "#reviews", label: t.nav.reviews },
   ];
 
   useEffect(() => {
