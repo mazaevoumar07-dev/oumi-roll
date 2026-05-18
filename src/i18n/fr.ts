@@ -10,6 +10,14 @@ export interface Dict {
     myOrders: string;
     changeLang: string;
   };
+  footer: {
+    tagline: string;
+    navTitle: string;
+    contactTitle: string;
+    hoursTitle: string;
+    hoursValue: string;
+    copyright: string;
+  };
   hero: {
     eyebrow: string;
     line1: string;
@@ -127,6 +135,15 @@ const fr: Dict = {
       `Commandez ${qty} portions et bénéficiez de la livraison offerte !`,
     gift: (qty, gift) =>
       `Commandez ${qty} portions et recevez ${gift} en cadeau !`,
+  },
+
+  footer: {
+    tagline: "Sushis & rolls préparés avec soin,\nlivrés à Le Mans.",
+    navTitle: "Navigation",
+    contactTitle: "Contact",
+    hoursTitle: "Horaires",
+    hoursValue: "Lun – Sam · 11h – 22h\nDimanche · 12h – 21h",
+    copyright: "© 2025 Oumi Roll · Le Mans",
   },
 };
 
