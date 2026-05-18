@@ -5,10 +5,30 @@ export interface Dict {
     order: string;
     about: string;
     contact: string;
+    reviews: string;
     login: string;
     logout: string;
     myOrders: string;
     changeLang: string;
+  };
+  about: {
+    eyebrow: string;
+    title: string;
+    text: string;
+  };
+  reviews: {
+    eyebrow: string;
+    title: string;
+    sub: string;
+    empty: string;
+    formTitle: string;
+    formName: string;
+    formNamePlaceholder: string;
+    formComment: string;
+    formCommentPlaceholder: string;
+    formSubmit: string;
+    formSuccess: string;
+    formStars: string;
   };
   footer: {
     tagline: string;
@@ -76,10 +96,32 @@ const fr: Dict = {
     order: "Commander",
     about: "À propos",
     contact: "Contact",
+    reviews: "Avis",
     login: "Connexion",
     logout: "Se déconnecter",
     myOrders: "Vos commandes",
     changeLang: "Changer la langue",
+  },
+
+  about: {
+    eyebrow: "Notre histoire",
+    title: "Né à Le Mans,\npour les amateurs de sushi",
+    text: "Oumi Roll est un restaurant japonais fondé avec une seule ambition : vous offrir des sushis frais, généreux et préparés à la commande. Chaque matin, nous sélectionnons des produits de qualité pour composer nos makis, californias et spécialités. Que vous commandiez en livraison ou passiez nous voir, nous mettons tout notre soin dans chaque rouleau.",
+  },
+
+  reviews: {
+    eyebrow: "Ce que disent nos clients",
+    title: "Avis",
+    sub: "Votre avis nous aide à nous améliorer et aide d'autres clients à choisir.",
+    empty: "Soyez le premier à laisser un avis !",
+    formTitle: "Laisser un avis",
+    formName: "Votre prénom",
+    formNamePlaceholder: "Ex. Sophie",
+    formComment: "Votre avis",
+    formCommentPlaceholder: "Dites-nous ce que vous avez aimé...",
+    formSubmit: "Publier",
+    formSuccess: "Merci pour votre avis !",
+    formStars: "Note",
   },
 
   hero: {

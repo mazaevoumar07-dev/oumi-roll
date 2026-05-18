@@ -8,10 +8,32 @@ const en: Dict = {
     order: "Order",
     about: "About",
     contact: "Contact",
+    reviews: "Reviews",
     login: "Login",
     logout: "Log out",
     myOrders: "Your orders",
     changeLang: "Change language",
+  },
+
+  about: {
+    eyebrow: "Our story",
+    title: "Born in Le Mans,\nfor sushi lovers",
+    text: "Oumi Roll is a Japanese restaurant founded with one goal: to offer you fresh, generous sushi made to order. Every morning we select quality ingredients to craft our makis, californias and specialties. Whether you order delivery or visit us in person, every roll is made with care.",
+  },
+
+  reviews: {
+    eyebrow: "What our customers say",
+    title: "Reviews",
+    sub: "Your feedback helps us improve and helps other customers choose.",
+    empty: "Be the first to leave a review!",
+    formTitle: "Leave a review",
+    formName: "Your name",
+    formNamePlaceholder: "e.g. Sophie",
+    formComment: "Your review",
+    formCommentPlaceholder: "Tell us what you enjoyed...",
+    formSubmit: "Publish",
+    formSuccess: "Thank you for your review!",
+    formStars: "Rating",
   },
 
   hero: {
