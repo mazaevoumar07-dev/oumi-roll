@@ -3,9 +3,33 @@
 import Link from "next/link";
 import { useLang } from "@/context/LangContext";
 
-const ADDRESS = "12 Rue des Îles, 72000 Le Mans";
-const PHONE   = "+33 2 43 XX XX XX";
-const INSTAGRAM = "@oumiroll";
+const ADDRESS     = "6 rue Flammarion, 72100 Le Mans";
+const MAPS_URL    = "https://maps.google.com/?q=6+rue+Flammarion,+72100+Le+Mans";
+const PHONE       = "+33 6 02 21 06 68";
+const PHONE_CLEAN = "+33602210668";
+
+const SOCIALS = [
+  {
+    label: "Instagram",
+    href: "https://instagram.com/oumiroll",
+    icon: <InstagramIcon />,
+  },
+  {
+    label: "Snapchat",
+    href: "https://snapchat.com/add/oumiroll",
+    icon: <SnapchatIcon />,
+  },
+  {
+    label: "Telegram",
+    href: "https://t.me/oumiroll",
+    icon: <TelegramIcon />,
+  },
+  {
+    label: "WhatsApp",
+    href: `https://wa.me/${PHONE_CLEAN}`,
+    icon: <WhatsAppIcon />,
+  },
+];
 
 export default function Footer() {
   const { t } = useLang();
@@ -17,7 +41,7 @@ export default function Footer() {
       <div className="max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 py-14 lg:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-12 lg:gap-8">
 
-          {/* Col 1 — Brand */}
+          {/* Col 1 — Brand + Socials */}
           <div className="flex flex-col gap-5">
             <div className="flex items-center gap-3">
               <LogoIcon />
@@ -30,18 +54,26 @@ export default function Footer() {
                 </span>
               </span>
             </div>
+
             <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] leading-[1.7] whitespace-pre-line max-w-[220px]">
               {t.footer.tagline}
             </p>
-            <a
-              href="https://instagram.com/oumiroll"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-[12px] tracking-[0.06em] text-[#8A8A8A] hover:text-[#C8A96E] transition-colors duration-200 font-[family-name:var(--font-dm-sans)]"
-            >
-              <InstagramIcon />
-              {INSTAGRAM}
-            </a>
+
+            {/* Social icons row */}
+            <div className="flex items-center gap-2 mt-1">
+              {SOCIALS.map(({ label, href, icon }) => (
+                <a
+                  key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="flex items-center justify-center w-9 h-9 border border-[#2A2A2A] rounded-[4px] text-[#8A8A8A] hover:text-[#C8A96E] hover:border-[#C8A96E]/50 transition-all duration-200"
+                >
+                  {icon}
+                </a>
+              ))}
+            </div>
           </div>
 
           {/* Col 2 — Nav */}
@@ -73,17 +105,27 @@ export default function Footer() {
                 {t.footer.contactTitle}
               </h3>
               <div className="flex flex-col gap-2.5">
-                <span className="flex items-start gap-2.5 font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A]">
+
+                {/* Address — opens Google Maps */}
+                <a
+                  href={MAPS_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-start gap-2.5 font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] hover:text-[#C8A96E] transition-colors duration-200 w-fit"
+                >
                   <PinIcon />
                   {ADDRESS}
-                </span>
+                </a>
+
+                {/* Phone */}
                 <a
-                  href={`tel:${PHONE.replace(/\s/g, "")}`}
+                  href={`tel:${PHONE_CLEAN}`}
                   className="flex items-center gap-2.5 font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] hover:text-[#F0EAD6] transition-colors duration-200 w-fit"
                 >
                   <PhoneIcon />
                   {PHONE}
                 </a>
+
               </div>
             </div>
 
@@ -114,25 +156,49 @@ export default function Footer() {
   );
 }
 
+/* ===== Icons ===== */
+
 function LogoIcon() {
   return (
     <svg width="32" height="32" viewBox="0 0 40 40" fill="none" aria-hidden="true">
       <circle cx="20" cy="17" r="12.5" stroke="#C8A96E" strokeWidth="1.4" />
       <circle cx="20" cy="17" r="4"    stroke="#C8A96E" strokeWidth="1.4" />
-      <path
-        d="M2 33 C8 28.5, 13 37, 20 33 C27 29, 32 37.5, 38 33"
-        stroke="#C8A96E" strokeWidth="1.4" strokeLinecap="round" fill="none"
-      />
+      <path d="M2 33 C8 28.5, 13 37, 20 33 C27 29, 32 37.5, 38 33" stroke="#C8A96E" strokeWidth="1.4" strokeLinecap="round" fill="none" />
     </svg>
   );
 }
 
 function InstagramIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="2" y="2" width="20" height="20" rx="5" ry="5" />
       <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" />
+      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function SnapchatIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2C8 2 6 5 6 8v1c-1 0-2 .5-2 1.5S5 12 6 12c-.5 2-2 3-3 3.5.5.5 2 1 4 .5 0 .5.5 1.5 2.5 2 .5.5 1 1 2.5 1s2-.5 2.5-1c2-.5 2.5-1.5 2.5-2 2 .5 3.5 0 4-.5C20 14.5 18.5 14 18 12c1 0 2-.5 2-1.5S19 9 18 9V8c0-3-2-6-6-6z" />
+    </svg>
+  );
+}
+
+function TelegramIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M22 2 11 13" />
+      <path d="M22 2 15 22 11 13 2 9l20-7z" />
+    </svg>
+  );
+}
+
+function WhatsAppIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
     </svg>
   );
 }
