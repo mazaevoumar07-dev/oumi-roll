@@ -32,13 +32,13 @@ export default function HeroSection() {
       <DecoCircles />
 
       {/* Content */}
-      <div className="relative z-10 max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 w-full grid lg:grid-cols-2 gap-16 items-center py-8">
+      <div className="relative z-10 max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 w-full grid lg:grid-cols-2 gap-8 items-center py-6">
 
         {/* Left: text */}
         <div className="flex flex-col items-start">
 
           {/* Eyebrow */}
-          <div className="flex items-center gap-3 mb-8">
+          <div className="flex items-center gap-3 mb-4">
             <div
               ref={lineRef}
               className="h-px bg-[#C8A96E] w-0 transition-all duration-700 ease-out"
@@ -49,23 +49,23 @@ export default function HeroSection() {
           </div>
 
           {/* H1 */}
-          <h1 className="font-[family-name:var(--font-cormorant)] leading-[1.05] mb-6">
-            <span className="block text-[36px] sm:text-[52px] lg:text-[80px] font-light text-[#F0EAD6] tracking-[0.02em]">
+          <h1 className="font-[family-name:var(--font-cormorant)] leading-[1.05] mb-4">
+            <span className="block text-[26px] sm:text-[36px] lg:text-[52px] font-light text-[#F0EAD6] tracking-[0.02em]">
               {t.hero.line1}
             </span>
-            <span className="block text-[36px] sm:text-[52px] lg:text-[80px] font-semibold italic text-[#C8A96E] tracking-[0.02em]">
+            <span className="block text-[26px] sm:text-[36px] lg:text-[52px] font-semibold italic text-[#C8A96E] tracking-[0.02em]">
               {t.hero.line2}
             </span>
-            <span className="block text-[36px] sm:text-[52px] lg:text-[80px] font-light text-[#F0EAD6] tracking-[0.02em]">
+            <span className="block text-[26px] sm:text-[36px] lg:text-[52px] font-light text-[#F0EAD6] tracking-[0.02em]">
               {t.hero.line3}
             </span>
           </h1>
 
           {/* Divider */}
-          <div className="w-16 h-px bg-[#8B6F3E] mb-6" />
+          <div className="w-16 h-px bg-[#8B6F3E] mb-4" />
 
           {/* Subtext */}
-          <p className="font-[family-name:var(--font-dm-sans)] text-[15px] text-[#8A8A8A] leading-[1.7] mb-10 max-w-sm whitespace-pre-line">
+          <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] leading-[1.6] mb-6 max-w-sm whitespace-pre-line">
             {t.hero.sub}
           </p>
 
@@ -102,8 +102,8 @@ export default function HeroSection() {
 function SushiDeco() {
   return (
     <svg
-      width="420"
-      height="420"
+      width="280"
+      height="280"
       viewBox="0 0 420 420"
       fill="none"
       aria-hidden="true"
