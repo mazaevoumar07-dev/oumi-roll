@@ -68,6 +68,15 @@ const ru: Dict = {
     gift: (qty: number, gift: string) =>
       `Закажите ${qty} порции и получите ${gift} в подарок!`,
   },
+
+  footer: {
+    tagline: "Суши и роллы, приготовленные с заботой,\nдоставка по Ле-Ману.",
+    navTitle: "Навигация",
+    contactTitle: "Контакты",
+    hoursTitle: "Часы работы",
+    hoursValue: "Пн – Сб · 11:00 – 22:00\nВоскресенье · 12:00 – 21:00",
+    copyright: "© 2025 Oumi Roll · Ле-Ман",
+  },
 };
 
 export default ru;

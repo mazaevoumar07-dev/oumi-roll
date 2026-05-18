@@ -68,6 +68,15 @@ const en: Dict = {
     gift: (qty: number, gift: string) =>
       `Order ${qty} portions and receive ${gift} as a gift!`,
   },
+
+  footer: {
+    tagline: "Sushis & rolls prepared with care,\ndelivered in Le Mans.",
+    navTitle: "Navigation",
+    contactTitle: "Contact",
+    hoursTitle: "Hours",
+    hoursValue: "Mon – Sat · 11am – 10pm\nSunday · 12pm – 9pm",
+    copyright: "© 2025 Oumi Roll · Le Mans",
+  },
 };
 
 export default en;
