@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useLang } from "@/context/LangContext";
 
 const ADDRESS     = "6 rue Flammarion, 72100 Le Mans";
@@ -58,43 +57,29 @@ export default function Footer() {
             <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] leading-[1.7] whitespace-pre-line max-w-[220px]">
               {t.footer.tagline}
             </p>
+          </div>
 
-            {/* Social icons row */}
-            <div className="flex items-center gap-2 mt-1">
+          {/* Col 2 — Socials */}
+          <div className="flex flex-col gap-5">
+            <h3 className="text-[10px] tracking-[0.22em] uppercase text-[#C8A96E] font-[family-name:var(--font-dm-sans)]">
+              {t.footer.socialTitle}
+            </h3>
+            <div className="flex flex-col gap-3">
               {SOCIALS.map(({ label, href, icon }) => (
                 <a
                   key={label}
                   href={href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  aria-label={label}
-                  className="flex items-center justify-center w-9 h-9 border border-[#2A2A2A] rounded-[4px] text-[#8A8A8A] hover:text-[#C8A96E] hover:border-[#C8A96E]/50 transition-all duration-200"
+                  className="flex items-center gap-3 font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] hover:text-[#C8A96E] transition-colors duration-200 w-fit"
                 >
-                  {icon}
+                  <span className="flex items-center justify-center w-7 h-7 border border-[#2A2A2A] rounded-[4px] text-inherit flex-shrink-0">
+                    {icon}
+                  </span>
+                  {label}
                 </a>
               ))}
             </div>
-          </div>
-
-          {/* Col 2 — Nav */}
-          <div className="flex flex-col gap-5">
-            <h3 className="text-[10px] tracking-[0.22em] uppercase text-[#C8A96E] font-[family-name:var(--font-dm-sans)]">
-              {t.footer.navTitle}
-            </h3>
-            <nav className="flex flex-col gap-3">
-              {[
-                { href: "#about",   label: t.nav.about },
-                { href: "#reviews", label: t.nav.reviews },
-              ].map(({ href, label }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] hover:text-[#F0EAD6] transition-colors duration-200 w-fit"
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
           </div>
 
           {/* Col 3 — Contact + Hours */}

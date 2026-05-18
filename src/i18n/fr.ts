@@ -32,7 +32,7 @@ export interface Dict {
   };
   footer: {
     tagline: string;
-    navTitle: string;
+    socialTitle: string;
     contactTitle: string;
     hoursTitle: string;
     hoursValue: string;
@@ -181,7 +181,7 @@ const fr: Dict = {
 
   footer: {
     tagline: "Sushis & rolls préparés avec soin,\nlivrés à Le Mans.",
-    navTitle: "Navigation",
+    socialTitle: "Suivez-nous",
     contactTitle: "Contact",
     hoursTitle: "Horaires",
     hoursValue: "Lun – Sam · 11h – 22h\nDimanche · 12h – 21h",

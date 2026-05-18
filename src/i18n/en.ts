@@ -93,7 +93,7 @@ const en: Dict = {
 
   footer: {
     tagline: "Sushis & rolls prepared with care,\ndelivered in Le Mans.",
-    navTitle: "Navigation",
+    socialTitle: "Follow us",
     contactTitle: "Contact",
     hoursTitle: "Hours",
     hoursValue: "Mon – Sat · 11am – 10pm\nSunday · 12pm – 9pm",
