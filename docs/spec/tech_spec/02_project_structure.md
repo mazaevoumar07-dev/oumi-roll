@@ -9,7 +9,6 @@ oumi-roll/
 │   │   ├── page.tsx                → Главная (Hero + Menu)
 │   │   ├── commande/page.tsx       → Оформление заказа
 │   │   ├── paiement/[id]/page.tsx  → Оплата (Stripe)
-│   │   ├── suivi/[id]/page.tsx     → Отслеживание заказа
 │   │   ├── connexion/page.tsx      → Вход / Регистрация
 │   │   ├── admin/                  → Панель администратора
 │   │   │   ├── login/page.tsx      → Вход администратора
@@ -21,7 +20,6 @@ oumi-roll/
 │   │       ├── orders/route.ts                  → POST /api/orders
 │   │       ├── orders/[id]/route.ts             → GET  /api/orders/:id
 │   │       ├── orders/[id]/cancel/route.ts      → POST /api/orders/:id/cancel
-│   │       ├── orders/[id]/location/route.ts    → GET  /api/orders/:id/location
 │   │       ├── auth/register/route.ts           → POST /api/auth/register
 │   │       ├── auth/login/route.ts              → POST /api/auth/login
 │   │       ├── auth/logout/route.ts             → POST /api/auth/logout
@@ -31,7 +29,6 @@ oumi-roll/
 │   │       ├── delivery/calculate/route.ts      → POST /api/delivery/calculate
 │   │       ├── payment/create-intent/route.ts   → POST /api/payment/intent
 │   │       ├── payment/webhook/route.ts         → POST /api/payment/webhook
-│   │       ├── courier/location/route.ts        → POST /api/courier/location
 │   │       └── admin/
 │   │           ├── login/route.ts       → POST /api/admin/login
 │   │           ├── menu/route.ts        → GET, POST /api/admin/menu

@@ -15,7 +15,6 @@
 | Хостинг | Vercel | Frontend + Backend (serverless functions) |
 | Хранение фото | Vercel Blob | Фотографии позиций меню |
 | Мультиязычность | i18next | Французский (по умолчанию), английский, русский |
-| Карта (клиент) | Google Maps JavaScript API | Карта с курьером на странице отслеживания |
 | Переменные окружения | Vercel Environment Variables | API-ключи, секреты |
 
 ---

@@ -18,9 +18,8 @@
 | Метод | Путь | Описание | Доступ |
 |---|---|---|---|
 | POST | /api/orders | Создать заказ (только через Stripe webhook) | Только Stripe |
-| GET | /api/orders/:id | Статус заказа по ID | `?token=<tracking_token>` или авторизованный клиент |
-| POST | /api/orders/:id/cancel | Отменить заказ (в течение 3 минут) | `?token=<tracking_token>` или авторизованный клиент |
-| GET | /api/orders/:id/location | Текущие координаты курьера | `?token=<tracking_token>` или авторизованный клиент |
+| GET | /api/orders/:id | Статус заказа по ID | Client JWT (владелец заказа) или Admin JWT |
+| POST | /api/orders/:id/cancel | Отменить заказ (в течение 3 минут) | Client JWT (владелец заказа) или Admin JWT |
 
 ---
 
@@ -58,14 +57,6 @@
 |---|---|---|---|
 | POST | /api/payment/intent | Создать платёжный intent (Stripe) | Публичный |
 | POST | /api/payment/webhook | Webhook от Stripe (подтверждение оплаты) | Только Stripe |
-
----
-
-## GPS-отслеживание курьера
-
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| POST | /api/courier/location | Курьер отправляет GPS-координаты | `?token=<courier_token>` |
 
 ---
 
