@@ -26,8 +26,10 @@
 | id | UUID | Первичный ключ |
 | first_name | VARCHAR(100) | Имя |
 | last_name | VARCHAR(100) | Фамилия |
-| phone | VARCHAR(20) UNIQUE | Номер телефона (логин) |
+| phone | VARCHAR(20) UNIQUE | Номер телефона (логин для клиентов; NULL у администратора) |
+| email | VARCHAR(200) UNIQUE | Email (логин для администратора; NULL у клиентов) |
 | password_hash | TEXT | Хэш пароля (bcrypt) |
+| role | ENUM('client','admin') | Роль; по умолчанию 'client' |
 | sms_opt_in | BOOLEAN | Согласие на SMS-рассылку |
 | created_at | TIMESTAMP | Дата регистрации |
 
