@@ -1,6 +1,6 @@
 # Feature Spec — OUMI ROLL
 
-> Каждая функция — отдельный файл. Полный оригинал — в `spec/featurespec/overview.md`.
+> Каждая функция — отдельный файл. Полный оригинал — в [overview.md](overview.md).
 
 ---
 
