@@ -12,26 +12,34 @@ oumi-roll/
 │   │   ├── suivi/[id]/page.tsx     → Отслеживание заказа
 │   │   ├── connexion/page.tsx      → Вход / Регистрация
 │   │   ├── admin/                  → Панель администратора
+│   │   │   ├── login/page.tsx      → Вход администратора
+│   │   │   ├── orders/page.tsx     → Управление заказами
+│   │   │   └── menu/page.tsx       → Управление меню
 │   │   └── api/                    ← API Routes (backend)
-│   │       ├── menu/route.ts           → GET  /api/menu
-│   │       ├── menu/[id]/route.ts      → GET  /api/menu/:id
-│   │       ├── orders/route.ts         → POST /api/orders
-│   │       ├── orders/[id]/route.ts    → GET  /api/orders/:id
-│   │       ├── orders/[id]/cancel/route.ts  → POST /api/orders/:id/cancel
-│   │       ├── auth/register/route.ts  → POST /api/auth/register
-│   │       ├── auth/login/route.ts     → POST /api/auth/login
-│   │       ├── auth/logout/route.ts    → POST /api/auth/logout
-│   │       ├── delivery/calculate/route.ts → POST /api/delivery/calculate
-│   │       ├── payment/create-intent/route.ts → POST /api/payment/intent
-│   │       ├── payment/webhook/route.ts    → POST /api/payment/webhook
-│   │       ├── courier/location/route.ts   → POST /api/courier/location
+│   │       ├── menu/route.ts                    → GET  /api/menu
+│   │       ├── menu/[id]/route.ts               → GET  /api/menu/:id
+│   │       ├── orders/route.ts                  → POST /api/orders
+│   │       ├── orders/[id]/route.ts             → GET  /api/orders/:id
+│   │       ├── orders/[id]/cancel/route.ts      → POST /api/orders/:id/cancel
+│   │       ├── orders/[id]/location/route.ts    → GET  /api/orders/:id/location
+│   │       ├── auth/register/route.ts           → POST /api/auth/register
+│   │       ├── auth/login/route.ts              → POST /api/auth/login
+│   │       ├── auth/logout/route.ts             → POST /api/auth/logout
+│   │       ├── auth/forgot-password/route.ts    → POST /api/auth/forgot-password
+│   │       ├── auth/reset-password/route.ts     → POST /api/auth/reset-password
+│   │       ├── users/me/orders/route.ts         → GET  /api/users/me/orders
+│   │       ├── delivery/calculate/route.ts      → POST /api/delivery/calculate
+│   │       ├── payment/create-intent/route.ts   → POST /api/payment/intent
+│   │       ├── payment/webhook/route.ts         → POST /api/payment/webhook
+│   │       ├── courier/location/route.ts        → POST /api/courier/location
 │   │       └── admin/
-│   │           ├── menu/route.ts       → GET, POST /api/admin/menu
-│   │           ├── menu/[id]/route.ts  → PATCH /api/admin/menu/:id
-│   │           ├── orders/route.ts     → GET /api/admin/orders
+│   │           ├── login/route.ts       → POST /api/admin/login
+│   │           ├── menu/route.ts        → GET, POST /api/admin/menu
+│   │           ├── menu/[id]/route.ts   → PATCH /api/admin/menu/:id
+│   │           ├── orders/route.ts      → GET /api/admin/orders
 │   │           ├── orders/[id]/route.ts → PATCH /api/admin/orders/:id
-│   │           ├── sms/send/route.ts   → POST /api/admin/sms/send
-│   │           └── promotions/route.ts → GET, PATCH /api/admin/promotions
+│   │           ├── sms/send/route.ts    → POST /api/admin/sms/send
+│   │           └── promotions/route.ts  → GET, PATCH /api/admin/promotions
 │   ├── components/                 ← UI-компоненты
 │   ├── context/                    ← React Context (корзина, auth)
 │   ├── data/                       ← статичные данные (меню)
@@ -41,8 +49,10 @@ oumi-roll/
 │   │   └── delivery.ts             → расчёт стоимости доставки
 │   └── types/                      ← TypeScript типы
 │
+├── scripts/
+│   └── create-admin.ts             → npm run create:admin — создаёт аккаунт администратора
 ├── public/                         ← статичные файлы
-├── spec/                           ← документация проекта
+├── docs/                           ← документация проекта
 ├── .gitignore
 ├── next.config.ts
 ├── tailwind.config.ts
@@ -60,3 +70,4 @@ oumi-roll/
 | `src/components/` | React-компоненты интерфейса |
 | `src/context/` | Глобальное состояние: корзина, авторизация |
 | `src/types/` | TypeScript-типы для всего проекта |
+| `scripts/` | Служебные скрипты разработчика (не попадают в клиентский bundle) |
