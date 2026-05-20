@@ -8,7 +8,7 @@
 |---|---|---|
 | Frontend | Next.js 15 + TypeScript (готово) | App Router, SSR, статичные страницы |
 | Backend | Next.js API Routes (App Router) | Сервер и API внутри того же проекта |
-| База данных | PostgreSQL через Neon | Хранение заказов, меню, пользователей |
+| База данных | PostgreSQL через Neon + `@neondatabase/serverless` | Хранение заказов, меню, пользователей; HTTP-драйвер обязателен для serverless |
 | Оплата | Stripe | Оплата картой, Apple Pay, Google Pay |
 | SMS | Twilio | Уведомления клиентам об акциях |
 | Геокодинг | Google Maps Geocoding API | Расчёт расстояния для доставки |

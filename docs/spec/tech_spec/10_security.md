@@ -35,8 +35,10 @@
 ```
 httpOnly: true      ← JavaScript не видит токен
 Secure: true        ← только HTTPS
-SameSite: Strict    ← защита от CSRF
+SameSite: Lax       ← защита от CSRF + совместимость с 3DS-редиректами Stripe
 ```
+
+> **Почему Lax, а не Strict:** при 3DS-аутентификации банк делает redirect обратно на сайт с внешнего домена. С `SameSite=Strict` cookie не отправляется при таком переходе — пользователь оказывается разлогинен посреди оплаты. `SameSite=Lax` отправляет cookie при top-level навигации (redirect), но блокирует cross-site sub-resource запросы — достаточно для CSRF-защиты.
 
 ---
 

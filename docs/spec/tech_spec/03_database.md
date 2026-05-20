@@ -31,6 +31,7 @@
 | password_hash | TEXT | Хэш пароля (bcrypt) |
 | role | ENUM('client','admin') | Роль; по умолчанию 'client' |
 | sms_opt_in | BOOLEAN | Согласие на SMS-рассылку |
+| sms_opt_in_at | TIMESTAMP | Когда клиент дал согласие (RGPD — обязательно хранить дату) |
 | created_at | TIMESTAMP | Дата регистрации |
 
 ---
@@ -147,3 +148,4 @@
 | success | BOOLEAN | Успешный вход или нет |
 
 > Блокировка: если за последние 15 минут ≥ 5 записей с `success = false` по одному `phone` — вход запрещается.
+> **Индекс обязателен:** `CREATE INDEX ON login_attempts (phone, attempted_at DESC)` — без него запрос блокировки замедлится по мере накопления записей. Таблица не чистится автоматически, нужен периодический cron или DELETE по TTL.
