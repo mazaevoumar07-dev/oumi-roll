@@ -1,4 +1,43 @@
 <!-- BEGIN:nextjs-agent-rules -->
+## Контекст проекта
+
+**OUMI ROLL** — сайт онлайн-заказа суши. Ресторан в Ле-Мане, Франция. Клиенты выбирают роллы, оформляют заказ и оплачивают онлайн. Администратор видит заказы в панели и управляет меню.
+
+**Текущий этап:** Backend — подключение API, базы данных и внешних сервисов.
+
+**Стек:** Next.js 15 App Router + TypeScript, PostgreSQL (Neon), Stripe, Twilio, Google Maps, Vercel Blob.
+
+**Ключевые спеки (читать перед работой):**
+- `docs/spec/tech_spec/04_api.md` — все API-маршруты
+- `docs/spec/tech_spec/03_database.md` — схема БД
+- `docs/spec/tech_spec/05_auth.md` — аутентификация
+- `docs/spec/featurespec/` — детали каждой функции F-01—F-13
+- `docs/spec/known_risks.md` — известные риски, обязательно читать
+
+---
+
+## Правила написания кода (backend)
+
+- **База данных:** всегда `@neondatabase/serverless`, никогда не `pg` — иначе connection storm на Vercel serverless
+- **Бонус:** проверять условия бонуса на сервере независимо — не доверять сумме из тела запроса
+- **JWT cookie:** всегда `httpOnly: true`, `Secure: true`, `SameSite: 'lax'`
+- **Stripe:** данные формы (имя, адрес, корзина) хранятся в `metadata` Payment Intent до прихода webhook
+- **SQL:** только параметризованные запросы — никогда не интерполировать строки в SQL
+- **Валидация:** проверять входные данные на каждом эндпоинте — не доверять клиенту
+
+## Что читать перед конкретными задачами
+
+| Задача | Читать сначала |
+|---|---|
+| API-маршрут | `docs/spec/tech_spec/04_api.md` + featurespec нужной функции |
+| БД / миграции | `docs/spec/tech_spec/03_database.md` |
+| Stripe / оплата | `docs/spec/tech_spec/07_external_services.md` |
+| Аутентификация | `docs/spec/tech_spec/05_auth.md` |
+| Деплой | `docs/spec/deployment_spec.md` |
+| Любой новый код | `docs/spec/known_risks.md` |
+
+---
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.

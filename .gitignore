@@ -40,5 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# claude code
-.claude/
+# claude code — личные настройки не коммитить, скиллы коммитить
+.claude/settings.local.json
+.claude/settings.json
