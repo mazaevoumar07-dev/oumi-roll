@@ -15,10 +15,12 @@
 
 ### 1. Настройка окружения
 - [ ] Зарегистрировать аккаунты: Neon, Stripe, Twilio, Google Cloud
+- [ ] Включить Vercel Blob: Vercel Dashboard → Storage → Blob
 - [ ] Получить все API-ключи
 - [ ] Добавить переменные окружения в Vercel
 - [ ] Запустить миграции базы данных (`npm run db:migrate`)
 - [ ] Заполнить меню начальными данными (`npm run db:seed`)
+- [ ] Создать аккаунт администратора (`npm run create:admin`)
 
 ### 2. База данных (Neon / PostgreSQL)
 - [ ] Написать миграции для всех таблиц: `users`, `menu_items`, `orders`, `order_items`, `courier_locations`, `promotions`, `password_reset_tokens`, `login_attempts`
@@ -31,6 +33,7 @@
 - [ ] **F-05** `POST /api/orders/:id/cancel` — отмена заказа + возврат через Stripe
 - [ ] **F-06** `POST /api/auth/register`, `/login`, `/logout`, `/forgot-password`, `/reset-password`
 - [ ] **F-07** `GET /api/orders/:id` — статус заказа по токену
+- [ ] **F-07** `GET /api/users/me/orders` — история заказов для авторизованного клиента
 - [ ] **F-08** `POST /api/payment/intent` + `/api/payment/webhook` — Stripe оплата
 - [ ] **F-13** `POST /api/courier/location` + `GET /api/orders/:id/location` — GPS курьера
 
@@ -65,7 +68,7 @@
 
 ## Технический стек
 
-Подробнее — в [tech_spec/overview.md](../../spec/tech_spec/overview.md)
+Подробнее — в [tech_spec/overview.md](../../docs/spec/tech_spec/overview.md)
 
 | Компонент | Технология |
 |---|---|
