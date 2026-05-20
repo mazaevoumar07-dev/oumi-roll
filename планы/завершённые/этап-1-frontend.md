@@ -49,7 +49,7 @@
 
 ## Связанные спеки
 
-- [design_spec.md](../../spec/design_spec.md)
-- [global_spec.md](../../spec/global_spec.md)
-- [featurespec/F-01_menu.md](../../spec/featurespec/F-01_menu.md)
-- [featurespec/F-02_cart.md](../../spec/featurespec/F-02_cart.md)
+- [design_spec.md](../../docs/spec/design_spec.md)
+- [global_spec.md](../../docs/spec/global_spec.md)
+- [featurespec/F-01_menu.md](../../docs/spec/featurespec/F-01_menu.md)
+- [featurespec/F-02_cart.md](../../docs/spec/featurespec/F-02_cart.md)
