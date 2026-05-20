@@ -81,6 +81,6 @@
 
 ## Связанные спеки
 
-- [featurespec/](../../spec/featurespec/) — спеки всех функций F-01 — F-13
-- [tech_spec/](../../spec/tech_spec/) — стек, API, БД, безопасность
-- [deployment_spec.md](../../spec/deployment_spec.md) — деплой и настройка окружения
+- [featurespec/](../../docs/spec/featurespec/) — спеки всех функций F-01 — F-13
+- [tech_spec/](../../docs/spec/tech_spec/) — стек, API, БД, безопасность
+- [deployment_spec.md](../../docs/spec/deployment_spec.md) — деплой и настройка окружения
