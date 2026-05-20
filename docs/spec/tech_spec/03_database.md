@@ -12,7 +12,6 @@
 | `menu_items` | Позиции меню |
 | `orders` | Заказы |
 | `order_items` | Состав заказа (строки) |
-| `courier_locations` | GPS-координаты курьера |
 | `promotions` | Настройки бонусов |
 | `password_reset_tokens` | Коды восстановления пароля |
 | `login_attempts` | Попытки входа для блокировки |
@@ -64,6 +63,7 @@
 | first_name | VARCHAR(100) | Имя клиента |
 | last_name | VARCHAR(100) | Фамилия клиента |
 | phone | VARCHAR(20) | Телефон клиента |
+| email | VARCHAR(200) | Email клиента (для Stripe receipt_email — чек об оплате) |
 | delivery_type | ENUM('delivery','pickup') | Способ получения |
 | address | TEXT | Адрес доставки (NULL если самовывоз) |
 | delivery_cost | NUMERIC(8,2) | Стоимость доставки (0 если самовывоз) |
@@ -71,8 +71,6 @@
 | status | ENUM | Статус заказа |
 | payment_status | ENUM('pending','paid','failed') | Статус оплаты |
 | stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe (UNIQUE — защита от дублей при повторных webhook) |
-| tracking_token | UUID | Токен для доступа клиента к статусу без авторизации |
-| courier_token | UUID | Токен для аутентификации курьера при отправке GPS |
 | created_at | TIMESTAMP | Время создания заказа |
 | cancelled_at | TIMESTAMP | Время отмены (NULL если не отменён) |
 
@@ -97,18 +95,6 @@
 
 ---
 
-## `courier_locations` — GPS-координаты курьера
-
-| Поле | Тип | Описание |
-|---|---|---|
-| order_id | UUID (FK) | Ссылка на orders.id |
-| latitude | NUMERIC(10,7) | Широта |
-| longitude | NUMERIC(10,7) | Долгота |
-| updated_at | TIMESTAMP | Время последнего обновления |
-
-> Одна строка на заказ. Координаты перезаписываются каждые 10 секунд пока статус `in_delivery`.
-
----
 
 ## `promotions` — бонусы и акции
 
