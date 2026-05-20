@@ -40,6 +40,7 @@ oumi-roll/
 │   │           ├── orders/[id]/route.ts → PATCH /api/admin/orders/:id
 │   │           ├── sms/send/route.ts    → POST /api/admin/sms/send
 │   │           └── promotions/route.ts  → GET, PATCH /api/admin/promotions
+│   ├── middleware.ts               → rate limiting (Next.js Middleware)
 │   ├── components/                 ← UI-компоненты
 │   ├── context/                    ← React Context (корзина, auth)
 │   ├── data/                       ← статичные данные (меню)
@@ -49,6 +50,11 @@ oumi-roll/
 │   │   └── delivery.ts             → расчёт стоимости доставки
 │   └── types/                      ← TypeScript типы
 │
+├── migrations/                     ← SQL-миграции базы данных (node-pg-migrate)
+│   ├── 001_create_users.sql
+│   ├── 002_create_menu_items.sql
+│   ├── 003_create_orders.sql
+│   └── ...                         → npm run db:migrate применяет все миграции
 ├── scripts/
 │   └── create-admin.ts             → npm run create:admin — создаёт аккаунт администратора
 ├── public/                         ← статичные файлы
@@ -71,3 +77,5 @@ oumi-roll/
 | `src/context/` | Глобальное состояние: корзина, авторизация |
 | `src/types/` | TypeScript-типы для всего проекта |
 | `scripts/` | Служебные скрипты разработчика (не попадают в клиентский bundle) |
+| `migrations/` | SQL-файлы миграций БД — применяются через `npm run db:migrate` |
+| `src/middleware.ts` | Next.js Middleware — rate limiting для защищённых эндпоинтов |
