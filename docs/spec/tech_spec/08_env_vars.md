@@ -14,7 +14,8 @@ DATABASE_URL=postgresql://...
 JWT_SECRET=...                        # случайная строка, минимум 32 символа
 
 # Stripe
-STRIPE_SECRET_KEY=sk_live_...
+STRIPE_SECRET_KEY=sk_live_...          # серверный ключ — никогда не светить на клиенте
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...  # публичный ключ — нужен Stripe Elements на фронтенде
 STRIPE_WEBHOOK_SECRET=whsec_...
 
 # Twilio (SMS)
