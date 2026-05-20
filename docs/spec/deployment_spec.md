@@ -86,7 +86,8 @@
 ```
 DATABASE_URL              → из Neon
 JWT_SECRET                → придумать длинную случайную строку (минимум 32 символа)
-STRIPE_SECRET_KEY         → из Stripe Dashboard
+STRIPE_SECRET_KEY         → из Stripe Dashboard (серверный, никогда не светить на клиенте)
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY → из Stripe Dashboard (публичный, нужен Stripe Elements)
 STRIPE_WEBHOOK_SECRET     → из Stripe Dashboard (после настройки webhook)
 TWILIO_ACCOUNT_SID        → из Twilio Console
 TWILIO_AUTH_TOKEN         → из Twilio Console
@@ -119,7 +120,24 @@ stripe listen --forward-to localhost:3000/api/payment/webhook
 
 ---
 
-## Шаг 5 — Настройка домена
+## Шаг 5 — Создание аккаунта администратора
+
+Аккаунт администратора создаётся один раз разработчиком — формы регистрации для него нет.
+
+1. Убедиться что миграции уже запущены (`npm run db:migrate`)
+2. Запустить скрипт создания администратора:
+   ```bash
+   npm run create:admin
+   ```
+3. Скрипт попросит ввести логин (номер телефона) и пароль
+4. Пароль будет сохранён в базе в виде bcrypt-хэша — в открытом виде нигде не хранится
+5. Проверить что вход работает: открыть `/admin/login`, ввести созданные данные
+
+> Если нужно сменить пароль администратора — запустить `npm run create:admin` повторно с теми же данными или удалить запись из таблицы `users` вручную и создать заново.
+
+---
+
+## Шаг 7 — Настройка домена
 
 1. Купить домен (например на [OVH](https://www.ovh.com) — французский регистратор)
 2. В Vercel → **Settings → Domains** → добавить домен
@@ -129,7 +147,7 @@ stripe listen --forward-to localhost:3000/api/payment/webhook
 
 ---
 
-## Шаг 6 — Переключение на боевой режим (Production)
+## Шаг 8 — Переключение на боевой режим (Production)
 
 До запуска всё работает в **тестовом режиме** Stripe — деньги не списываются по-настоящему.
 
@@ -163,7 +181,7 @@ stripe listen --forward-to localhost:3000/api/payment/webhook
 - [ ] `JWT_SECRET` — случайная строка, не «password123»
 - [ ] CORS настроен только на домен ресторана
 - [ ] Панель администратора недоступна без логина
-- [ ] Аккаунт администратора создан вручную разработчиком через скрипт (`npm run create:admin`)
+- [ ] Аккаунт администратора создан и вход проверен (см. Шаг 5)
 
 ---
 
