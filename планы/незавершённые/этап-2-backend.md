@@ -87,3 +87,4 @@
 - [featurespec/](../../docs/spec/featurespec/) — спеки всех функций F-01 — F-13
 - [tech_spec/](../../docs/spec/tech_spec/) — стек, API, БД, безопасность
 - [deployment_spec.md](../../docs/spec/deployment_spec.md) — деплой и настройка окружения
+- [known_risks.md](../../docs/spec/known_risks.md) — известные риски и ограничения

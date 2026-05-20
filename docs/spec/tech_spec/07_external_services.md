@@ -12,6 +12,9 @@
 - Поддерживаемые методы: Visa, Mastercard, Apple Pay, Google Pay
 - Валюта: только EUR (€)
 
+**Хранение данных формы до оплаты:**
+При создании Payment Intent данные формы (имя, адрес, состав корзины) передаются в `metadata` объекта PaymentIntent. При получении webhook `payment_intent.succeeded` — сервер читает `metadata` и создаёт заказ. Данные формы не хранятся в нашей БД до подтверждения оплаты.
+
 **Защита от дублей (idempotency):**
 Перед созданием заказа: `SELECT id FROM orders WHERE stripe_payment_id = $1`.
 Если строка уже есть — webhook игнорируется, возвращается `200 OK`.
@@ -56,9 +59,11 @@ TWILIO_PHONE_NUMBER=+33...
 **Используется:** PostgreSQL (управляемая БД)
 
 - Подключение через `DATABASE_URL` (connection string)
-- Библиотека: `pg` (node-postgres)
+- Библиотека: **`@neondatabase/serverless`** (HTTP-режим, не TCP) — обязательно для Vercel Serverless Functions
 - Миграции: `node-pg-migrate`
 - Регион: **EU West (Paris)** — ближайший к Ле-Ману
+
+> **Почему не стандартный `pg`:** каждая serverless-функция открывает новое TCP-соединение к БД. При пиковой нагрузке (SMS-рассылка → все клиенты открывают сайт одновременно) возникает connection storm и Neon отказывает. `@neondatabase/serverless` использует HTTP-запросы без постоянного соединения — это правильный выбор для serverless.
 
 **Переменная окружения:**
 ```
