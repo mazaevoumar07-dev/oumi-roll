@@ -52,6 +52,7 @@
 | **Stripe** | Зарегистрироваться, получить тестовые ключи |
 | **Twilio** | Зарегистрироваться, получить номер телефона и ключи |
 | **Google Cloud** | Создать проект, включить Geocoding API, получить ключ |
+| **Vercel Blob** | Включить в Vercel Dashboard → Storage → Blob, скопировать `BLOB_READ_WRITE_TOKEN` |
 
 ---
 
@@ -90,7 +91,9 @@ STRIPE_WEBHOOK_SECRET     → из Stripe Dashboard (после настройк
 TWILIO_ACCOUNT_SID        → из Twilio Console
 TWILIO_AUTH_TOKEN         → из Twilio Console
 TWILIO_PHONE_NUMBER       → из Twilio Console
-GOOGLE_MAPS_API_KEY       → из Google Cloud Console
+GOOGLE_MAPS_API_KEY       → из Google Cloud Console (backend: геокодинг, скрыт от клиента)
+NEXT_PUBLIC_GOOGLE_MAPS_KEY → из Google Cloud Console (frontend: карта курьера, виден в браузере)
+BLOB_READ_WRITE_TOKEN     → из Vercel Dashboard → Storage → Blob
 RESTAURANT_LAT            → 47.9948
 RESTAURANT_LNG            → 0.1985
 ```
@@ -148,7 +151,8 @@ stripe listen --forward-to localhost:3000/api/payment/webhook
 ### Внешние сервисы
 - [ ] Stripe — боевые ключи, webhook настроен, аккаунт верифицирован
 - [ ] Twilio — реальный номер телефона подключён, тестовое SMS отправлено
-- [ ] Google Maps — API ключ ограничен только нашим доменом (безопасность)
+- [ ] Google Maps — `GOOGLE_MAPS_API_KEY` ограничен серверными запросами, `NEXT_PUBLIC_GOOGLE_MAPS_KEY` ограничен доменом `oumiroll.fr`
+- [ ] Vercel Blob — токен добавлен, тестовая загрузка фото работает
 
 ### Vercel
 - [ ] Все переменные окружения заполнены для окружения Production
@@ -159,6 +163,7 @@ stripe listen --forward-to localhost:3000/api/payment/webhook
 - [ ] `JWT_SECRET` — случайная строка, не «password123»
 - [ ] CORS настроен только на домен ресторана
 - [ ] Панель администратора недоступна без логина
+- [ ] Аккаунт администратора создан вручную разработчиком через скрипт (`npm run create:admin`)
 
 ---
 
