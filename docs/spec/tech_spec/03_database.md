@@ -1,6 +1,7 @@
 # База данных — Схема таблиц
 
-> БД: PostgreSQL через Neon. Миграции через `node-pg-migrate`.
+> БД: PostgreSQL через Supabase. Таблицы создаются через Supabase Dashboard или SQL Editor.
+> Auth-данные (хэш пароля, токены сессии) хранятся в схеме `auth` — управляется Supabase автоматически.
 
 ---
 
@@ -8,30 +9,32 @@
 
 | Таблица | Назначение |
 |---|---|
-| `users` | Зарегистрированные клиенты |
+| `users` | Профили клиентов (расширение `auth.users`) |
 | `menu_items` | Позиции меню |
 | `orders` | Заказы |
 | `order_items` | Состав заказа (строки) |
 | `promotions` | Настройки бонусов |
-| `password_reset_tokens` | Коды восстановления пароля |
-| `login_attempts` | Попытки входа для блокировки |
+
+> `password_reset_tokens` и `login_attempts` не нужны — Supabase Auth управляет этим автоматически.
 
 ---
 
-## `users` — зарегистрированные клиенты
+## `users` — профили клиентов
 
 | Поле | Тип | Описание |
 |---|---|---|
-| id | UUID | Первичный ключ |
+| id | UUID | Первичный ключ — совпадает с `auth.users.id` |
 | first_name | VARCHAR(100) | Имя |
 | last_name | VARCHAR(100) | Фамилия |
-| phone | VARCHAR(20) UNIQUE | Номер телефона (логин для клиентов; NULL у администратора) |
-| email | VARCHAR(200) UNIQUE | Email (логин для администратора; NULL у клиентов) |
-| password_hash | TEXT | Хэш пароля (bcrypt) |
-| role | ENUM('client','admin') | Роль; по умолчанию 'client' |
+| phone | VARCHAR(20) | Телефон (логин клиента; NULL у администратора) |
+| email | VARCHAR(200) | Email (логин администратора; NULL у клиентов) |
+| role | TEXT | Роль: `'client'` или `'admin'`; по умолчанию `'client'` |
 | sms_opt_in | BOOLEAN | Согласие на SMS-рассылку |
 | sms_opt_in_at | TIMESTAMP | Когда клиент дал согласие (RGPD — обязательно хранить дату) |
 | created_at | TIMESTAMP | Дата регистрации |
+
+> Пароль и сессия хранятся в `auth.users` (Supabase). В `public.users` только профильные данные.
+> Строка в `public.users` создаётся автоматически при регистрации через Supabase trigger или API route.
 
 ---
 
@@ -44,7 +47,7 @@
 | description | TEXT | Описание |
 | price | NUMERIC(8,2) | Текущая цена (€) |
 | original_price | NUMERIC(8,2) | Старая цена (если есть скидка) |
-| photo_url | TEXT | Ссылка на фото (Vercel Blob) |
+| photo_url | TEXT | Ссылка на фото (Supabase Storage) |
 | is_available | BOOLEAN | Доступен для заказа |
 | is_visible | BOOLEAN | Виден в меню (не удалён) |
 | created_at | TIMESTAMP | Дата добавления |
@@ -64,13 +67,14 @@
 | last_name | VARCHAR(100) | Фамилия клиента |
 | phone | VARCHAR(20) | Телефон клиента |
 | email | VARCHAR(200) | Email клиента (для Stripe receipt_email — чек об оплате) |
-| delivery_type | ENUM('delivery','pickup') | Способ получения |
+| delivery_type | TEXT | Способ получения: `'delivery'` или `'pickup'` |
 | address | TEXT | Адрес доставки (NULL если самовывоз) |
 | delivery_cost | NUMERIC(8,2) | Стоимость доставки (0 если самовывоз) |
 | total_amount | NUMERIC(8,2) | Итоговая сумма (заказ + доставка) |
-| status | ENUM | Статус заказа |
-| payment_status | ENUM('pending','paid','failed') | Статус оплаты |
+| status | TEXT | Статус заказа |
+| payment_status | TEXT | Статус оплаты: `'pending'`, `'paid'`, `'failed'` |
 | stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe (UNIQUE — защита от дублей при повторных webhook) |
+| courier_token | UUID | Токен для курьера (отправка GPS) |
 | created_at | TIMESTAMP | Время создания заказа |
 | cancelled_at | TIMESTAMP | Время отмены (NULL если не отменён) |
 
@@ -95,7 +99,6 @@
 
 ---
 
-
 ## `promotions` — бонусы и акции
 
 | Поле | Тип | Описание |
@@ -106,32 +109,3 @@
 | updated_at | TIMESTAMP | Когда администратор последний раз менял настройку |
 
 > Таблица содержит одну строку — настройки текущего бонуса.
-
----
-
-## `password_reset_tokens` — коды восстановления пароля
-
-| Поле | Тип | Описание |
-|---|---|---|
-| id | UUID | Первичный ключ |
-| user_id | UUID (FK) | Ссылка на users.id |
-| code_hash | TEXT | bcrypt-хэш 6-значного кода (не хранится в открытом виде) |
-| expires_at | TIMESTAMP | Время истечения (создание + 10 минут) |
-| used_at | TIMESTAMP | Когда использован (NULL если ещё нет) |
-| created_at | TIMESTAMP | Время создания |
-
-> При повторном запросе старый код инвалидируется (`used_at = now()`), создаётся новый.
-
----
-
-## `login_attempts` — попытки входа для блокировки
-
-| Поле | Тип | Описание |
-|---|---|---|
-| id | UUID | Первичный ключ |
-| phone | VARCHAR(20) | Телефон по которому пытались войти |
-| attempted_at | TIMESTAMP | Время попытки |
-| success | BOOLEAN | Успешный вход или нет |
-
-> Блокировка: если за последние 15 минут ≥ 5 записей с `success = false` по одному `phone` — вход запрещается.
-> **Индекс обязателен:** `CREATE INDEX ON login_attempts (phone, attempted_at DESC)` — без него запрос блокировки замедлится по мере накопления записей. Таблица не чистится автоматически, нужен периодический cron или DELETE по TTL.

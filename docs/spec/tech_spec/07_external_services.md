@@ -42,11 +42,13 @@ STRIPE_WEBHOOK_SECRET=whsec_...
 
 ## Twilio — SMS
 
-**Используется:** Twilio Messaging API
+**Используется:** Twilio Messaging API (два назначения)
+
+1. **Supabase Auth OTP** — верификация телефона при регистрации клиента (настраивается в Supabase Dashboard → Auth → SMS Provider → Twilio)
+2. **Промо-рассылки** — SMS клиентам с `sms_opt_in = true` через `/api/admin/sms/send`
 
 - SMS рассылаются только клиентам с `sms_opt_in = true`
 - Логирование: сколько SMS отправлено, сколько ошибок
-- Используется также для SMS-кодов восстановления пароля
 
 **Переменные окружения:**
 ```
@@ -57,36 +59,31 @@ TWILIO_PHONE_NUMBER=+33...
 
 ---
 
-## Neon — PostgreSQL
+## Supabase — база данных + auth + storage
 
-**Используется:** PostgreSQL (управляемая БД)
+**Используется:** PostgreSQL + Supabase Auth + Supabase Storage
 
-- Подключение через `DATABASE_URL` (connection string)
-- Библиотека: **`@neondatabase/serverless`** (HTTP-режим, не TCP) — обязательно для Vercel Serverless Functions
-- Миграции: `node-pg-migrate`
-- Регион: **EU West (Paris)** — ближайший к Ле-Ману
+**База данных:**
+- Подключение через `@supabase/supabase-js`
+- На сервере (API routes): `createServerClient` из `@supabase/ssr` — читает cookie из запроса
+- Регион: **EU West** — ближайший к Ле-Ману
 
-> **Почему не стандартный `pg`:** каждая serverless-функция открывает новое TCP-соединение к БД. При пиковой нагрузке (SMS-рассылка → все клиенты открывают сайт одновременно) возникает connection storm и Neon отказывает. `@neondatabase/serverless` использует HTTP-запросы без постоянного соединения — это правильный выбор для serverless.
+**Auth:**
+- Клиенты: телефон + пароль + SMS OTP через Twilio
+- Администратор: email + пароль
+- Supabase выдаёт и обновляет JWT автоматически
 
-**Переменная окружения:**
-```
-DATABASE_URL=postgresql://user:pass@host/dbname
-```
-
----
-
-## Vercel Blob — хранение фото
-
-**Используется:** Vercel Blob Storage
-
-- Фотографии роллов загружаются администратором
-- При загрузке через `/api/admin/menu` — файл сохраняется в Blob, в БД пишется только URL
+**Storage:**
+- Бакет `menu-photos` — фотографии позиций меню
+- Загрузка через `/api/admin/menu` — файл идёт в Supabase Storage, в БД пишется только публичный URL
 - Максимальный размер: **5 МБ**
 - Поддерживаемые форматы: JPG, PNG, WebP
 
-**Переменная окружения:**
+**Переменные окружения:**
 ```
-BLOB_READ_WRITE_TOKEN=vercel_blob_...
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...             # публичный — можно на клиент
+SUPABASE_SERVICE_ROLE_KEY=eyJ...                 # только сервер — никогда не светить на клиенте
 ```
 
 ---
@@ -103,4 +100,4 @@ BLOB_READ_WRITE_TOKEN=vercel_blob_...
 GOOGLE_MAPS_API_KEY=AIza...
 ```
 
-> Ключ ограничивается только серверными запросами в Google Cloud Console. Фронтендовый ключ для карты не нужен — карта с курьером удалена из проекта.
+> Ключ ограничивается только серверными запросами в Google Cloud Console.
