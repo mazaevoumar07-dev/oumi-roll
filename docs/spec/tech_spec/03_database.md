@@ -74,7 +74,6 @@
 | status | TEXT | Статус заказа |
 | payment_status | TEXT | Статус оплаты: `'pending'`, `'paid'`, `'failed'` |
 | stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe (UNIQUE — защита от дублей при повторных webhook) |
-| courier_token | UUID | Токен для курьера (отправка GPS) |
 | created_at | TIMESTAMP | Время создания заказа |
 | cancelled_at | TIMESTAMP | Время отмены (NULL если не отменён) |
 
