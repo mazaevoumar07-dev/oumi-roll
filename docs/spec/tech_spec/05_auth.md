@@ -1,52 +1,70 @@
 # Аутентификация
 
+> Auth полностью управляется **Supabase Auth**. Никакого ручного JWT/bcrypt.
+
 ---
 
 ## Клиент
 
-- JWT токен, хранится в `httpOnly cookie` (недоступен из JavaScript — защита от XSS)
-- Логин: номер телефона + пароль
-- Токен истекает через **7 дней**
-- Cookie: `Secure`, `SameSite=Strict`
+- Логин: **номер телефона + пароль** (Supabase Phone Auth)
+- При регистрации Supabase отправляет OTP-код через Twilio для верификации телефона
+- После верификации — сессия создаётся автоматически, Supabase выдаёт JWT
+- JWT хранится в `httpOnly cookie` через `@supabase/ssr`
+- Токен истекает через **1 час**, автоматически обновляется через refresh token
 
 ---
 
 ## Администратор
 
-- Страница входа: `/admin/login` — скрыта от обычных клиентов
-- Логин: **email + пароль** (не телефон — отдельно от клиентского входа)
-- Получает JWT с ролью `admin`, хранится в `httpOnly cookie`
-- Токен истекает через **7 дней**
-- Cookie: `Secure`, `SameSite=Strict`
-- Токен даёт доступ ко всем `/api/admin/*` эндпоинтам
-- Аккаунт создаётся **один раз разработчиком** — регистрации нет
-- Только один администратор — владелец ресторана
+- Страница входа: `/admin/login`
+- Логин: **email + пароль** (Supabase Email Auth)
+- Supabase выдаёт JWT с теми же механизмами что у клиента
+- Роль `admin` проверяется на сервере: `SELECT role FROM public.users WHERE id = $userId`
+- Аккаунт создаётся один раз разработчиком через Supabase Dashboard
+- Регистрации нет — только один администратор
 
 ---
 
-## Общее
+## Как проверять авторизацию в API-маршрутах
 
-- Пароли хэшируются через **bcrypt** (salt rounds: 12)
-- После **5 неверных попыток** входа — блокировка на **15 минут** (хранится в таблице `login_attempts`)
+```ts
+import { createServerClient } from '@supabase/ssr'
 
----
+// В API route:
+const supabase = createServerClient(...)
+const { data: { user } } = await supabase.auth.getUser()
+if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-## Токены заказа и курьера
-
-Помимо JWT есть два UUID-токена для доступа без авторизации:
-
-| Токен | Где хранится | Для чего |
-|---|---|---|
-| `tracking_token` | `orders.tracking_token` | Клиент видит статус заказа без аккаунта (`/suivi/[id]?token=...`) |
-| `courier_token` | `orders.courier_token` | Курьер отправляет GPS-координаты (`/courier/[id]?token=...`) |
-
-- `courier_token` действует только пока статус заказа `in_delivery` — при переходе в `completed` или `cancelled` сервер отклоняет запросы с `403`.
+// Для admin-маршрутов дополнительно:
+const { data: profile } = await supabase.from('users').select('role').eq('id', user.id).single()
+if (profile?.role !== 'admin') return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+```
 
 ---
 
-## Связанные таблицы БД
+## Что Supabase берёт на себя
 
-- `login_attempts` — хранит попытки входа для блокировки
-- `password_reset_tokens` — коды восстановления пароля (SMS, 6 цифр, 10 минут)
+- Хэширование паролей (bcrypt внутри)
+- SMS OTP для верификации телефона (через Twilio — настраивается в Supabase Dashboard)
+- Refresh token и ротация сессий
+- Защита от брутфорса (встроенный rate limiting)
+- Восстановление пароля (SMS OTP для телефонных пользователей)
 
-> Подробнее — в [03_database.md](03_database.md).
+---
+
+## Пакеты
+
+```
+@supabase/supabase-js   — клиентский SDK
+@supabase/ssr           — server-side helpers для Next.js App Router (cookies)
+```
+
+---
+
+## Переменные окружения
+
+```
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...   # только сервер — никогда не светить на клиенте
+```

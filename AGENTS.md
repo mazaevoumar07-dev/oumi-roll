@@ -5,7 +5,7 @@
 
 **Текущий этап:** Backend — подключение API, базы данных и внешних сервисов.
 
-**Стек:** Next.js 15 App Router + TypeScript, PostgreSQL (Neon), Stripe, Twilio, Google Maps, Vercel Blob.
+**Стек:** Next.js 15 App Router + TypeScript, PostgreSQL (Supabase), Stripe, Twilio, Google Maps.
 
 **Ключевые спеки (читать перед работой):**
 - `docs/spec/tech_spec/04_api.md` — все API-маршруты
@@ -18,9 +18,10 @@
 
 ## Правила написания кода (backend)
 
-- **База данных:** всегда `@neondatabase/serverless`, никогда не `pg` — иначе connection storm на Vercel serverless
+- **База данных:** всегда `@supabase/supabase-js` (server client через `@supabase/ssr`), никогда не `pg` напрямую
+- **Auth:** никогда не писать JWT/bcrypt вручную — использовать Supabase Auth SDK
 - **Бонус:** проверять условия бонуса на сервере независимо — не доверять сумме из тела запроса
-- **JWT cookie:** всегда `httpOnly: true`, `Secure: true`, `SameSite: 'lax'`
+- **Supabase RLS:** всегда проверять роль через `supabase.auth.getUser()` на сервере — не доверять клиентскому токену
 - **Stripe:** данные формы (имя, адрес, корзина) хранятся в `metadata` Payment Intent до прихода webhook
 - **SQL:** только параметризованные запросы — никогда не интерполировать строки в SQL
 - **Валидация:** проверять входные данные на каждом эндпоинте — не доверять клиенту

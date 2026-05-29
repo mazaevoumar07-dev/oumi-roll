@@ -8,12 +8,13 @@
 |---|---|---|
 | Frontend | Next.js 15 + TypeScript (готово) | App Router, SSR, статичные страницы |
 | Backend | Next.js API Routes (App Router) | Сервер и API внутри того же проекта |
-| База данных | PostgreSQL через Neon + `@neondatabase/serverless` | Хранение заказов, меню, пользователей; HTTP-драйвер обязателен для serverless |
+| База данных | PostgreSQL через Supabase + `@supabase/supabase-js` | Хранение заказов, меню, пользователей |
+| Auth | Supabase Auth | Регистрация/вход клиентов (телефон+пароль) и администратора (email+пароль), SMS-верификация |
+| Хранение фото | Supabase Storage | Фотографии позиций меню |
 | Оплата | Stripe | Оплата картой, Apple Pay, Google Pay |
-| SMS | Twilio | Уведомления клиентам об акциях |
+| SMS | Twilio | Уведомления клиентам об акциях; OTP-верификация через Supabase Auth |
 | Геокодинг | Google Maps Geocoding API | Расчёт расстояния для доставки |
 | Хостинг | Vercel | Frontend + Backend (serverless functions) |
-| Хранение фото | Vercel Blob | Фотографии позиций меню |
 | Мультиязычность | i18next | Французский (по умолчанию), английский, русский |
 | Переменные окружения | Vercel Environment Variables | API-ключи, секреты |
 
@@ -25,13 +26,14 @@
 Клиент (браузер)
     │
     ├── GET /menu, /orders/:id        → Vercel Serverless Functions (Node.js)
-    ├── POST /orders, /auth/login     →        │
-    └── POST /payment/intent          →        │
+    ├── POST /orders, /payment/intent →        │
+    └── Supabase Auth SDK             →        │
                                                │
                               ┌────────────────┼────────────────┐
                               │                │                │
-                           Neon DB          Stripe           Twilio
-                        (PostgreSQL)      (Оплата)           (SMS)
+                           Supabase         Stripe           Twilio
+                        (DB + Auth        (Оплата)     (SMS акции + OTP)
+                        + Storage)
                               │
                        Google Maps API
                        (Геокодинг)

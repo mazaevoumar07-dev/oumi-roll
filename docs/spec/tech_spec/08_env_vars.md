@@ -7,27 +7,23 @@
 ## Полный список
 
 ```env
-# База данных (Neon)
-DATABASE_URL=postgresql://...
-
-# Аутентификация
-JWT_SECRET=...                        # случайная строка, минимум 32 символа
+# Supabase (база данных + auth + storage)
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # Stripe
-STRIPE_SECRET_KEY=sk_live_...          # серверный ключ — никогда не светить на клиенте
+STRIPE_SECRET_KEY=sk_live_...                   # серверный ключ — никогда не светить на клиенте
 NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...  # публичный ключ — нужен Stripe Elements на фронтенде
 STRIPE_WEBHOOK_SECRET=whsec_...
 
-# Twilio (SMS)
+# Twilio (SMS акции + OTP через Supabase)
 TWILIO_ACCOUNT_SID=AC...
 TWILIO_AUTH_TOKEN=...
 TWILIO_PHONE_NUMBER=+33...
 
-# Google Maps (backend — геокодинг адреса для расчёта доставки, скрыт от клиента)
+# Google Maps (backend — геокодинг адреса для расчёта доставки)
 GOOGLE_MAPS_API_KEY=AIza...
-
-# Vercel Blob (фото роллов)
-BLOB_READ_WRITE_TOKEN=vercel_blob_...
 
 # Координаты ресторана (Ле-Ман)
 RESTAURANT_LAT=47.9948
@@ -44,13 +40,10 @@ Vercel Dashboard → Settings → Environment Variables.
 Тестовые ключи Stripe (`sk_test_...`) используются в Development и Preview.
 Боевые ключи (`sk_live_...`) — только в Production.
 
-> Подробнее о настройке — в [deployment_spec.md](../deployment_spec.md).
-
 ---
 
 ## Важные правила
 
-- `JWT_SECRET` — случайная строка, минимум 32 символа. Никогда не `password123`.
+- `SUPABASE_SERVICE_ROLE_KEY` — даёт полный доступ к БД в обход RLS. Только на сервере, никогда на клиенте.
 - `NEXT_PUBLIC_*` переменные **видны в браузере** — не писать туда секреты.
-- `GOOGLE_MAPS_API_KEY` (backend) — должен быть ограничен только серверными запросами.
-- `GOOGLE_MAPS_API_KEY` — ограничить только серверными запросами в Google Cloud Console. Фронтендовый ключ для карты не нужен.
+- `GOOGLE_MAPS_API_KEY` — ограничить только серверными запросами в Google Cloud Console.
