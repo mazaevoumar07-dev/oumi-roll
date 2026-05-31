@@ -1,35 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useLang } from "@/context/LangContext";
-import { MENU_ITEMS } from "@/data/menu";
-import { getBonusConfig, BONUS_MIN_QTY, type BonusConfig } from "@/lib/bonus-storage";
-import { getMenuItems } from "@/lib/menu-storage";
+import { useMenu, BONUS_MIN_QTY } from "@/context/MenuContext";
 
 export default function CartDrawer() {
   const { items, isOpen, closeCart, removeItem, updateQty, total } = useCart();
   const { t } = useLang();
-  const [bonus, setBonus]       = useState<BonusConfig | null>(null);
-  const [giftName, setGiftName] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const cfg = getBonusConfig();
-    setBonus(cfg);
-    if (cfg.freeItem && cfg.freeItemId) {
-      const item = getMenuItems().find(i => i.id === cfg.freeItemId && i.available);
-      setGiftName(item?.name ?? null);
-    } else {
-      setGiftName(null);
-    }
-  }, [isOpen]);
+  const { items: menuItems, promo } = useMenu();
 
   const totalQty      = items.reduce((s, i) => s + i.qty, 0);
   const bonusUnlocked = totalQty >= BONUS_MIN_QTY;
-  const showFreeDelivery = bonusUnlocked && bonus?.freeDelivery;
-  const showGift         = bonusUnlocked && bonus?.freeItem && !!giftName;
+  const showFreeDelivery = bonusUnlocked && promo.is_active;
+  const showGift         = bonusUnlocked && promo.is_active && !!promo.gift_item_name;
 
   // Lock body scroll when open
   useEffect(() => {
@@ -47,10 +32,10 @@ export default function CartDrawer() {
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, closeCart]);
 
-  // Check if any cart item is now unavailable
+  // Проверяем не стали ли товары в корзине недоступными
   const hasUnavailable = items.some(cartItem => {
-    const menuItem = MENU_ITEMS.find(m => m.id === cartItem.id);
-    return menuItem && !menuItem.available;
+    const menuItem = menuItems.find(m => m.id === cartItem.id);
+    return menuItem && !menuItem.is_available;
   });
 
   const isEmpty = items.length === 0;
@@ -125,8 +110,8 @@ export default function CartDrawer() {
             /* Items list */
             <ul className="divide-y divide-[#2A2A2A]">
               {items.map((item) => {
-                const menuItem = MENU_ITEMS.find(m => m.id === item.id);
-                const unavailable = menuItem && !menuItem.available;
+                const menuItem = menuItems.find(m => m.id === item.id);
+                const unavailable = menuItem && !menuItem.is_available;
 
                 return (
                   <li key={item.id} className={["px-6 py-5 flex flex-col gap-3", unavailable ? "opacity-60" : ""].join(" ")}>
@@ -228,7 +213,7 @@ export default function CartDrawer() {
                   <div className="flex items-center gap-2">
                     <CheckIcon />
                     <span className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#27AE60]">
-                      {t.cart.bonusGift(giftName!)}
+                      {t.cart.bonusGift(promo.gift_item_name!)}
                     </span>
                   </div>
                 )}

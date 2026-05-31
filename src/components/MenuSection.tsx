@@ -3,8 +3,7 @@
 import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import { useLang } from "@/context/LangContext";
-import { MENU_ITEMS, type MenuItem } from "@/data/menu";
-import { getMenuItems } from "@/lib/menu-storage";
+import { useMenu, type ApiMenuItem } from "@/context/MenuContext";
 
 const CATEGORY_KEYS = ["ALL", "Makis", "California", "Temaki", "Spécialités"] as const;
 type CategoryKey = typeof CATEGORY_KEYS[number];
@@ -13,20 +12,16 @@ type CategoryKey = typeof CATEGORY_KEYS[number];
 
 export default function MenuSection() {
   const [activeCategory, setActiveCategory] = useState<CategoryKey>("ALL");
-  const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
-  const [items, setItems] = useState<MenuItem[]>(MENU_ITEMS);
-  const { t, lang } = useLang();
+  const [selectedItem, setSelectedItem] = useState<ApiMenuItem | null>(null);
+  const { t } = useLang();
   const { addItem } = useCart();
+  const { items, loading } = useMenu();
 
-  useEffect(() => {
-    setItems(getMenuItems());
-  }, []);
-
-  const visible = items.filter(i => i.available);
+  const visible = items.filter(i => i.is_available);
   const filtered =
     activeCategory === "ALL"
-      ? visible
-      : visible.filter(i => i.category === activeCategory);
+      ? items  // показываем все включая недоступные — с бейджем "Нет в наличии"
+      : items.filter(i => i.category === activeCategory);
 
   function getCategoryLabel(key: CategoryKey): string {
     if (key === "ALL") return t.menu.catAll;
@@ -34,15 +29,9 @@ export default function MenuSection() {
     return key;
   }
 
-  function getDescription(item: MenuItem): string {
-    if (lang === "EN") return item.descriptions?.en ?? item.description;
-    if (lang === "RU") return item.descriptions?.ru ?? item.description;
-    return item.description;
-  }
-
-  function handleQuickAdd(item: MenuItem, e: React.MouseEvent) {
+  function handleQuickAdd(item: ApiMenuItem, e: React.MouseEvent) {
     e.stopPropagation();
-    if (!item.available) return;
+    if (!item.is_available) return;
     addItem({ id: item.id, name: item.name, price: item.price });
   }
 
@@ -87,8 +76,12 @@ export default function MenuSection() {
           ))}
         </div>
 
-        {/* Grid or empty state */}
-        {filtered.length === 0 ? (
+        {/* Состояние загрузки */}
+        {loading ? (
+          <div className="flex items-center justify-center py-32">
+            <div className="w-8 h-8 border-2 border-[#C8A96E]/20 border-t-[#C8A96E] rounded-full animate-spin" />
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-32 gap-3">
             <span className="font-[family-name:var(--font-cormorant)] text-[26px] text-[#8A8A8A] font-light">
               {t.menu.menuEmpty}
@@ -103,7 +96,6 @@ export default function MenuSection() {
               <MenuCard
                 key={item.id}
                 item={item}
-                description={getDescription(item)}
                 onOpen={() => setSelectedItem(item)}
                 onQuickAdd={(e) => handleQuickAdd(item, e)}
               />
@@ -117,7 +109,6 @@ export default function MenuSection() {
       {selectedItem && (
         <MenuModal
           item={selectedItem}
-          description={getDescription(selectedItem)}
           onClose={() => setSelectedItem(null)}
         />
       )}
@@ -129,12 +120,10 @@ export default function MenuSection() {
 
 function MenuCard({
   item,
-  description,
   onOpen,
   onQuickAdd,
 }: {
-  item: MenuItem;
-  description: string;
+  item: ApiMenuItem;
   onOpen: () => void;
   onQuickAdd: (e: React.MouseEvent) => void;
 }) {
@@ -144,34 +133,45 @@ function MenuCard({
       className={[
         "group flex flex-col bg-[#1A1A1A] border border-[#2A2A2A] rounded-[4px] overflow-hidden",
         "transition-all duration-300",
-        item.available
+        item.is_available
           ? "cursor-pointer hover:border-[#C8A96E]/40 hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(200,169,110,0.07)]"
           : "opacity-60",
       ].join(" ")}
-      onClick={item.available ? onOpen : undefined}
+      onClick={item.is_available ? onOpen : undefined}
     >
       {/* Image area */}
       <div className="relative aspect-[4/3] overflow-hidden bg-[#0F0F0F]">
-        <SushiPlaceholder id={item.id} />
+        {item.photo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.photo_url}
+            alt={item.name}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <SushiPlaceholder id={item.id} />
+        )}
 
         {/* Badges */}
         <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-          {!item.available && (
+          {!item.is_available && (
             <span className="px-2.5 py-[5px] bg-[#0D0D0D]/90 border border-[#2A2A2A] text-[10px] tracking-[0.1em] uppercase text-[#8A8A8A] rounded-[2px] font-[family-name:var(--font-dm-sans)]">
               {t.menu.unavailable}
             </span>
           )}
-          {item.originalPrice && item.available && (
+          {item.original_price && item.is_available && (
             <span className="px-2.5 py-[5px] bg-[#C8A96E] text-[#0D0D0D] text-[10px] tracking-[0.1em] uppercase font-medium rounded-[2px] font-[family-name:var(--font-dm-sans)]">
               Promotion
             </span>
           )}
         </div>
 
-        {/* Pieces count */}
-        <span className="absolute bottom-3 right-3 px-2 py-[3px] bg-[#0D0D0D]/75 text-[10px] tracking-[0.08em] text-[#8A8A8A] rounded-[2px] font-[family-name:var(--font-dm-sans)]">
-          {item.pieces === 1 ? "1 pièce" : `${item.pieces} pièces`}
-        </span>
+        {/* Количество кусочков */}
+        {item.pieces !== null && (
+          <span className="absolute bottom-3 right-3 px-2 py-[3px] bg-[#0D0D0D]/75 text-[10px] tracking-[0.08em] text-[#8A8A8A] rounded-[2px] font-[family-name:var(--font-dm-sans)]">
+            {item.pieces === 1 ? "1 pièce" : `${item.pieces} pièces`}
+          </span>
+        )}
       </div>
 
       {/* Content */}
@@ -189,37 +189,37 @@ function MenuCard({
 
         {/* Description */}
         <p className="font-[family-name:var(--font-dm-sans)] text-[12.5px] text-[#8A8A8A] leading-[1.65] line-clamp-2 flex-1">
-          {description}
+          {item.description}
         </p>
 
         {/* Price + button */}
         <div className="flex items-center justify-between pt-3 border-t border-[#2A2A2A] mt-1">
           <div className="flex items-baseline gap-2">
-            {item.originalPrice && (
+            {item.original_price && (
               <span className="text-[12px] text-[#8A8A8A]/60 line-through font-[family-name:var(--font-dm-sans)]">
-                €{item.originalPrice.toFixed(2)}
+                €{Number(item.original_price).toFixed(2)}
               </span>
             )}
             <span className={[
               "font-[family-name:var(--font-cormorant)] text-[22px] font-semibold",
-              item.originalPrice ? "text-[#C8A96E]" : "text-[#F0EAD6]",
+              item.original_price ? "text-[#C8A96E]" : "text-[#F0EAD6]",
             ].join(" ")}>
-              €{item.price.toFixed(2)}
+              €{Number(item.price).toFixed(2)}
             </span>
           </div>
 
           <button
             onClick={onQuickAdd}
-            disabled={!item.available}
-            aria-label={item.available ? `${t.menu.add} ${item.name}` : t.menu.unavailable}
+            disabled={!item.is_available}
+            aria-label={item.is_available ? `${t.menu.add} ${item.name}` : t.menu.unavailable}
             className={[
               "flex items-center justify-center w-9 h-9 rounded-[4px] border transition-all duration-200",
-              item.available
+              item.is_available
                 ? "border-[#C8A96E]/50 text-[#C8A96E] hover:bg-[#C8A96E]/10 hover:border-[#C8A96E]"
                 : "border-[#2A2A2A] text-[#3A3A3A] cursor-not-allowed",
             ].join(" ")}
           >
-            {item.available ? <PlusIcon /> : <BanIcon />}
+            {item.is_available ? <PlusIcon /> : <BanIcon />}
           </button>
         </div>
 
@@ -230,7 +230,7 @@ function MenuCard({
 
 /* ===== MENU MODAL ===== */
 
-function MenuModal({ item, description, onClose }: { item: MenuItem; description: string; onClose: () => void }) {
+function MenuModal({ item, onClose }: { item: ApiMenuItem; onClose: () => void }) {
   const { addItem } = useCart();
   const { t } = useLang();
   const [qty, setQty] = useState(1);
@@ -259,7 +259,7 @@ function MenuModal({ item, description, onClose }: { item: MenuItem; description
   }, [added, onClose]);
 
   function handleAdd() {
-    addItem({ id: item.id, name: item.name, price: item.price }, qty);
+    addItem({ id: item.id, name: item.name, price: Number(item.price) }, qty);
     setAdded(true);
   }
 
@@ -274,7 +274,16 @@ function MenuModal({ item, description, onClose }: { item: MenuItem; description
       >
         {/* Image */}
         <div className="relative aspect-[16/9] bg-[#0F0F0F]">
-          <SushiPlaceholder id={item.id} large />
+          {item.photo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={item.photo_url}
+              alt={item.name}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : (
+            <SushiPlaceholder id={item.id} large />
+          )}
 
           {/* Close */}
           <button
@@ -287,12 +296,12 @@ function MenuModal({ item, description, onClose }: { item: MenuItem; description
 
           {/* Badges */}
           <div className="absolute top-3 left-3 flex flex-col gap-1.5">
-            {!item.available && (
+            {!item.is_available && (
               <span className="px-2.5 py-[5px] bg-[#0D0D0D]/90 border border-[#2A2A2A] text-[10px] tracking-[0.1em] uppercase text-[#8A8A8A] rounded-[2px] font-[family-name:var(--font-dm-sans)]">
                 {t.menu.unavailable}
               </span>
             )}
-            {item.originalPrice && item.available && (
+            {item.original_price && item.is_available && (
               <span className="px-2.5 py-[5px] bg-[#C8A96E] text-[#0D0D0D] text-[10px] tracking-[0.1em] uppercase font-medium rounded-[2px] font-[family-name:var(--font-dm-sans)]">
                 Promotion
               </span>
@@ -303,7 +312,7 @@ function MenuModal({ item, description, onClose }: { item: MenuItem; description
         {/* Content */}
         <div className="p-5 sm:p-6">
           <span className="text-[10px] tracking-[0.15em] uppercase text-[#C8A96E]/60 font-[family-name:var(--font-dm-sans)]">
-            {item.category} · {item.pieces === 1 ? "1 pièce" : `${item.pieces} pièces`}
+            {item.category}{item.pieces !== null ? ` · ${item.pieces === 1 ? "1 pièce" : `${item.pieces} pièces`}` : ""}
           </span>
 
           <h3 className="font-[family-name:var(--font-cormorant)] text-[26px] sm:text-[30px] font-medium text-[#F0EAD6] leading-tight mt-1 mb-3">
@@ -311,24 +320,24 @@ function MenuModal({ item, description, onClose }: { item: MenuItem; description
           </h3>
 
           <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] leading-[1.75] mb-6">
-            {description}
+            {item.description}
           </p>
 
           {/* Price + controls */}
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Price */}
             <div className="flex items-baseline gap-2">
-              {item.originalPrice && (
+              {item.original_price && (
                 <span className="text-[13px] text-[#8A8A8A]/60 line-through font-[family-name:var(--font-dm-sans)]">
-                  €{item.originalPrice.toFixed(2)}
+                  €{Number(item.original_price).toFixed(2)}
                 </span>
               )}
               <span className="font-[family-name:var(--font-cormorant)] text-[30px] font-semibold text-[#C8A96E]">
-                €{item.price.toFixed(2)}
+                €{Number(item.price).toFixed(2)}
               </span>
             </div>
 
-            {item.available ? (
+            {item.is_available ? (
               <div className="flex items-center gap-2.5">
                 {/* Qty */}
                 <div className="flex items-center border border-[#2A2A2A] rounded-[4px] overflow-hidden">
@@ -368,7 +377,7 @@ function MenuModal({ item, description, onClose }: { item: MenuItem; description
                       <span>{t.menu.add} ✓</span>
                     </>
                   ) : (
-                    <span>{t.menu.add} — €{(item.price * qty).toFixed(2)}</span>
+                    <span>{t.menu.add} — €{(Number(item.price) * qty).toFixed(2)}</span>
                   )}
                 </button>
               </div>
