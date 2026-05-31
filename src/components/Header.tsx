@@ -12,7 +12,7 @@ export default function Header() {
   const [menuOpen,     setMenuOpen]     = useState(false);
   const [userDropOpen, setUserDropOpen] = useState(false);
   const { itemCount, openCart } = useCart();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const { lang, t, setLang } = useLang();
   const dropRef = useRef<HTMLDivElement>(null);
 
@@ -137,7 +137,7 @@ export default function Header() {
                       <p className="text-[11px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)] truncate mt-0.5">{user.telephone}</p>
                     </div>
                     <button
-                      onClick={() => { logout(); setUserDropOpen(false); }}
+                      onClick={() => { signOut(); setUserDropOpen(false); }}
                       className="w-full flex items-center gap-2.5 px-4 py-3 text-[12px] text-[#8A8A8A] hover:text-[#F0EAD6] hover:bg-[#2A2A2A] transition-colors font-[family-name:var(--font-dm-sans)]"
                     >
                       <LogoutIcon />
@@ -225,7 +225,7 @@ export default function Header() {
               {user.prenom} {user.nom}
             </p>
             <button
-              onClick={() => { logout(); closeMobileMenu(); }}
+              onClick={() => { signOut(); closeMobileMenu(); }}
               className="flex items-center justify-center gap-2 w-full px-6 py-[13px] border border-[#2A2A2A] text-[#8A8A8A] text-[12.5px] tracking-[0.06em] rounded-[4px] hover:border-[#C0392B]/40 hover:text-[#C0392B] transition-all duration-200 font-[family-name:var(--font-dm-sans)]"
             >
               <LogoutIcon />
