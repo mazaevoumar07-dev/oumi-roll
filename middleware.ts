@@ -24,7 +24,17 @@ export async function middleware(request: NextRequest) {
   )
 
   // Refreshes the session cookie on every request so it doesn't expire mid-session
-  await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  // Redirect unauthenticated users away from admin pages
+  const path = request.nextUrl.pathname
+  if (path.startsWith('/admin') && path !== '/admin/login') {
+    if (!user) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/admin/login'
+      return NextResponse.redirect(url)
+    }
+  }
 
   return supabaseResponse
 }
