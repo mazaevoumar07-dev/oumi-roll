@@ -5,14 +5,15 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
-import { generateOrderId, saveOrder } from "@/types/order";
+import { useMenu, BONUS_MIN_QTY } from "@/context/MenuContext";
 
-/* ===== TYPES ===== */
+/* ===== ТИПЫ ===== */
 
 interface FormData {
   prenom: string;
   nom: string;
   telephone: string;
+  email: string;
   mode: "livraison" | "emporter";
   adresse: string;
 }
@@ -20,11 +21,15 @@ interface FormData {
 type FormErrors = Partial<Record<keyof FormData, string>>;
 type Touched    = Partial<Record<keyof FormData, boolean>>;
 
-/* ===== VALIDATION ===== */
+/* ===== ВАЛИДАЦИЯ ===== */
 
 function isValidPhone(value: string): boolean {
   const v = value.replace(/[\s\-\.]/g, "");
   return /^(0[1-9]\d{8}|(\+33|0033)[1-9]\d{8})$/.test(v);
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 }
 
 function validate(f: FormData): FormErrors {
@@ -33,27 +38,39 @@ function validate(f: FormData): FormErrors {
   if (!f.nom.trim())       e.nom       = "Le nom est requis";
   if (!f.telephone.trim()) e.telephone = "Le numéro de téléphone est requis";
   else if (!isValidPhone(f.telephone)) e.telephone = "Format invalide — ex : 06 12 34 56 78";
+  if (!f.email.trim())     e.email     = "L'email est requis";
+  else if (!isValidEmail(f.email)) e.email = "Format invalide — ex : jean@exemple.fr";
   if (f.mode === "livraison" && !f.adresse.trim()) e.adresse = "L'adresse est requise pour la livraison";
   return e;
 }
 
-/* ===== CONSTANTS ===== */
-
-const FORM_ID     = "checkout-form";
-const DELIVERY_MIN = 2.50;
+const FORM_ID = "checkout-form";
 
 /* ===== PAGE ===== */
 
 export default function CommandePage() {
   const { items, total, clearCart, closeCart } = useCart();
   const { user } = useAuth();
+  const { promo } = useMenu();
   const router = useRouter();
 
   const [form, setForm] = useState<FormData>({
-    prenom: "", nom: "", telephone: "", mode: "livraison", adresse: "",
+    prenom: "", nom: "", telephone: "", email: "", mode: "livraison", adresse: "",
   });
+  const [errors,  setErrors]  = useState<FormErrors>({});
+  const [touched, setTouched] = useState<Touched>({});
 
-  // Prefill from auth when user logs in or page loads
+  // Состояние расчёта доставки
+  const [deliveryCost, setDeliveryCost]       = useState<number>(0);
+  const [distanceKm, setDistanceKm]           = useState<number | null>(null);
+  const [deliveryStatus, setDeliveryStatus]   = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [deliveryError, setDeliveryError]     = useState<string | null>(null);
+
+  // Состояние отправки формы
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Предзаполнение из профиля авторизованного пользователя
   useEffect(() => {
     if (!user) return;
     const fill = setTimeout(() => {
@@ -62,23 +79,45 @@ export default function CommandePage() {
         prenom:    f.prenom    || user.prenom,
         nom:       f.nom       || user.nom,
         telephone: f.telephone || user.telephone,
+        email:     f.email     || user.email || "",
       }));
     }, 0);
     return () => clearTimeout(fill);
   }, [user]);
-  const [errors,  setErrors]  = useState<FormErrors>({});
-  const [touched, setTouched] = useState<Touched>({});
 
-  const deliveryCost = form.mode === "livraison" ? DELIVERY_MIN : 0;
-  const orderTotal   = total + deliveryCost;
-  const isEmpty      = items.length === 0;
+  // Бонус — применяется если активен и заказано >= 2 порций
+  const totalQty = items.reduce((s, i) => s + i.qty, 0);
+  const bonusApplies = promo.is_active && totalQty >= BONUS_MIN_QTY;
 
-  function set(field: keyof FormData, value: string) {
+  // Итоговая стоимость доставки с учётом бонуса
+  const effectiveDeliveryCost = (bonusApplies || form.mode === "emporter") ? 0 : deliveryCost;
+  const orderTotal = total + effectiveDeliveryCost;
+
+  const isEmpty = items.length === 0;
+
+  function setField(field: keyof FormData, value: string) {
     const next = { ...form, [field]: value };
     setForm(next);
     if (touched[field]) {
       const e = validate(next);
       setErrors(prev => ({ ...prev, [field]: e[field] }));
+    }
+    // Сбросить расчёт доставки если изменился адрес
+    if (field === "adresse") {
+      setDeliveryStatus("idle");
+      setDeliveryError(null);
+      setDeliveryCost(0);
+      setDistanceKm(null);
+    }
+  }
+
+  function setMode(mode: "livraison" | "emporter") {
+    setForm(f => ({ ...f, mode }));
+    if (mode === "emporter") {
+      setDeliveryStatus("idle");
+      setDeliveryError(null);
+      setDeliveryCost(0);
+      setDistanceKm(null);
     }
   }
 
@@ -88,35 +127,98 @@ export default function CommandePage() {
     setErrors(prev => ({ ...prev, [field]: e[field] }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  // Расчёт стоимости доставки при уходе из поля адреса
+  async function handleAddressBlur() {
+    blur("adresse");
+    if (form.mode !== "livraison" || !form.adresse.trim()) return;
+
+    setDeliveryStatus("loading");
+    setDeliveryError(null);
+
+    try {
+      const res = await fetch("/api/delivery/calculate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: form.adresse }),
+      });
+      const data = await res.json() as { distance_km?: number; delivery_cost?: number; error?: string };
+
+      if (!res.ok || data.error) {
+        setDeliveryStatus("error");
+        setDeliveryError(data.error ?? "Adresse introuvable.");
+        setDeliveryCost(0);
+        setDistanceKm(null);
+      } else {
+        setDeliveryStatus("done");
+        setDeliveryCost(data.delivery_cost!);
+        setDistanceKm(data.distance_km!);
+      }
+    } catch {
+      setDeliveryStatus("error");
+      setDeliveryError("Erreur réseau. Réessayez.");
+    }
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    setSubmitError(null);
+
     const allTouched: Touched = Object.fromEntries(Object.keys(form).map(k => [k, true]));
     setTouched(allTouched);
     const errs = validate(form);
     setErrors(errs);
-    if (Object.keys(errs).length === 0) {
-      const id = generateOrderId();
-      saveOrder({
-        id,
-        items,
-        subtotal: total,
-        deliveryCost,
-        total: orderTotal,
-        mode: form.mode,
-        adresse: form.adresse,
-        prenom: form.prenom,
-        nom: form.nom,
-        telephone: form.telephone,
-        status: "pending_payment",
-        createdAt: new Date().toISOString(),
+    if (Object.keys(errs).length > 0) return;
+
+    // Проверка что доставка рассчитана
+    if (form.mode === "livraison" && deliveryStatus !== "done") {
+      setDeliveryError("Veuillez attendre le calcul des frais de livraison.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    try {
+      const res = await fetch("/api/payment/intent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: form.prenom,
+          last_name:  form.nom,
+          phone:      form.telephone,
+          email:      form.email,
+          delivery_type: form.mode === "livraison" ? "delivery" : "pickup",
+          address:    form.mode === "livraison" ? form.adresse : undefined,
+          delivery_cost: effectiveDeliveryCost,
+          items: items.map(i => ({ menu_item_id: i.id, quantity: i.qty })),
+        }),
       });
+
+      const data = await res.json() as {
+        client_secret?: string;
+        payment_intent_id?: string;
+        total_amount?: number;
+        error?: string;
+      };
+
+      if (!res.ok || !data.client_secret || !data.payment_intent_id) {
+        setSubmitError(data.error ?? "Impossible de créer le paiement. Réessayez.");
+        setSubmitting(false);
+        return;
+      }
+
+      // Сохраняем client_secret в sessionStorage — страница оплаты его прочитает
+      sessionStorage.setItem(`pi_${data.payment_intent_id}`, data.client_secret);
+
       clearCart();
       closeCart();
-      router.push(`/paiement/${id}`);
+      router.push(`/paiement/${data.payment_intent_id}`);
+    } catch {
+      setSubmitError("Erreur réseau. Vérifiez votre connexion et réessayez.");
+      setSubmitting(false);
     }
   }
 
-  /* ── Panier vide ── */
+  /* ── Пустая корзина ── */
   if (isEmpty) {
     return (
       <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center gap-6 bg-[#0D0D0D] px-6">
@@ -133,7 +235,7 @@ export default function CommandePage() {
     );
   }
 
-  /* ── Page principale ── */
+  /* ── Основная страница ── */
   return (
     <div className="bg-[#0D0D0D] min-h-[calc(100vh-72px)]">
       <div className="max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 py-12 lg:py-16">
@@ -142,37 +244,46 @@ export default function CommandePage() {
 
         <div className="mt-10 lg:mt-12 grid lg:grid-cols-[1fr_380px] xl:grid-cols-[1fr_420px] gap-10 lg:gap-14 items-start">
 
-          {/* ══ FORMULAIRE ══ */}
+          {/* ══ ФОРМА ══ */}
           <form id={FORM_ID} onSubmit={handleSubmit} noValidate className="flex flex-col gap-8">
 
-            {/* Informations personnelles */}
+            {/* Личные данные */}
             <FormSection title="Vos informations">
               <div className="grid sm:grid-cols-2 gap-4">
                 <Field
                   label="Prénom" required placeholder="Jean" autoComplete="given-name"
                   value={form.prenom} error={errors.prenom}
-                  onChange={v => set("prenom", v)} onBlur={() => blur("prenom")}
+                  onChange={v => setField("prenom", v)} onBlur={() => blur("prenom")}
                 />
                 <Field
                   label="Nom" required placeholder="Dupont" autoComplete="family-name"
                   value={form.nom} error={errors.nom}
-                  onChange={v => set("nom", v)} onBlur={() => blur("nom")}
+                  onChange={v => setField("nom", v)} onBlur={() => blur("nom")}
                 />
               </div>
               <Field
                 label="Téléphone" required type="tel"
                 placeholder="06 12 34 56 78" autoComplete="tel"
                 value={form.telephone} error={errors.telephone}
-                onChange={v => set("telephone", v)} onBlur={() => blur("telephone")}
+                onChange={v => setField("telephone", v)} onBlur={() => blur("telephone")}
               />
+              <Field
+                label="Email" required type="email"
+                placeholder="jean@exemple.fr" autoComplete="email"
+                value={form.email} error={errors.email}
+                onChange={v => setField("email", v)} onBlur={() => blur("email")}
+              />
+              <p className="text-[11.5px] text-[#8A8A8A]/55 font-[family-name:var(--font-dm-sans)] -mt-2">
+                Votre reçu de paiement sera envoyé à cette adresse.
+              </p>
             </FormSection>
 
-            {/* Mode de réception */}
+            {/* Способ получения */}
             <FormSection title="Mode de réception">
               <div className="grid grid-cols-2 gap-3">
                 {(["livraison", "emporter"] as const).map(m => (
                   <button
-                    key={m} type="button" onClick={() => set("mode", m)}
+                    key={m} type="button" onClick={() => setMode(m)}
                     className={[
                       "flex flex-col items-center gap-2.5 px-4 py-5 border rounded-[4px] transition-all duration-200",
                       form.mode === m
@@ -195,30 +306,71 @@ export default function CommandePage() {
                 </p>
               )}
 
-              {/* Adresse — slide in/out */}
+              {/* Поле адреса — появляется при выборе доставки */}
               <div className={[
                 "overflow-hidden transition-all duration-300 ease-in-out",
-                form.mode === "livraison" ? "max-h-[160px] opacity-100 mt-1" : "max-h-0 opacity-0",
+                form.mode === "livraison" ? "max-h-[260px] opacity-100 mt-1" : "max-h-0 opacity-0",
               ].join(" ")}>
-                <Field
-                  label="Adresse de livraison" required autoComplete="street-address"
-                  placeholder="12 rue de la Paix, 72000 Le Mans"
-                  value={form.adresse} error={errors.adresse}
-                  onChange={v => set("adresse", v)} onBlur={() => blur("adresse")}
-                />
-                <p className="mt-2 text-[11.5px] text-[#8A8A8A]/55 font-[family-name:var(--font-dm-sans)]">
-                  Zone de livraison : rayon de 5 km autour du restaurant
-                </p>
+                <div className="relative">
+                  <Field
+                    label="Adresse de livraison" required autoComplete="street-address"
+                    placeholder="12 rue de la Paix, 72000 Le Mans"
+                    value={form.adresse} error={errors.adresse}
+                    onChange={v => setField("adresse", v)}
+                    onBlur={handleAddressBlur}
+                    disabled={deliveryStatus === "loading"}
+                  />
+                  {/* Индикатор расчёта */}
+                  {deliveryStatus === "loading" && (
+                    <div className="absolute right-3 top-[34px] flex items-center gap-1.5 text-[11.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
+                      <div className="w-3.5 h-3.5 border border-[#8A8A8A]/30 border-t-[#8A8A8A] rounded-full animate-spin" />
+                      Calcul…
+                    </div>
+                  )}
+                </div>
+
+                {/* Результат расчёта */}
+                {deliveryStatus === "done" && distanceKm !== null && !bonusApplies && (
+                  <p className="mt-2 text-[12px] text-[#27AE60] font-[family-name:var(--font-dm-sans)] flex items-center gap-1.5">
+                    <CheckCircleIcon />
+                    {distanceKm} km — livraison {effectiveDeliveryCost === 0 ? "gratuite" : `€${effectiveDeliveryCost.toFixed(2)}`}
+                  </p>
+                )}
+                {bonusApplies && deliveryStatus === "done" && (
+                  <p className="mt-2 text-[12px] text-[#27AE60] font-[family-name:var(--font-dm-sans)] flex items-center gap-1.5">
+                    <CheckCircleIcon />
+                    Livraison offerte — bonus appliqué !
+                  </p>
+                )}
+                {deliveryStatus === "error" && deliveryError && (
+                  <p className="mt-2 text-[12px] text-[#C0392B] font-[family-name:var(--font-dm-sans)]">
+                    {deliveryError}
+                  </p>
+                )}
+                {deliveryStatus === "idle" && (
+                  <p className="mt-2 text-[11.5px] text-[#8A8A8A]/55 font-[family-name:var(--font-dm-sans)]">
+                    Zone de livraison : rayon de 5 km autour du restaurant
+                  </p>
+                )}
               </div>
             </FormSection>
 
-            {/* Bouton mobile uniquement */}
+            {/* Ошибка отправки */}
+            {submitError && (
+              <div className="flex items-start gap-2.5 px-3.5 py-3 bg-[#C0392B]/10 border border-[#C0392B]/30 rounded-[4px]">
+                <p className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#F0EAD6]/80 leading-[1.6]">
+                  {submitError}
+                </p>
+              </div>
+            )}
+
+            {/* Кнопка только для мобильных */}
             <div className="lg:hidden">
-              <SubmitBtn />
+              <SubmitBtn submitting={submitting} />
             </div>
           </form>
 
-          {/* ══ RÉCAPITULATIF ══ */}
+          {/* ══ РЕЗЮМЕ ЗАКАЗА ══ */}
           <aside className="lg:sticky lg:top-[calc(72px+2rem)]">
             <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-[4px] overflow-hidden">
 
@@ -228,7 +380,7 @@ export default function CommandePage() {
                 </h2>
               </div>
 
-              {/* Articles */}
+              {/* Позиции */}
               <ul className="divide-y divide-[#2A2A2A]">
                 {items.map(item => (
                   <li key={item.id} className="flex items-center justify-between gap-3 px-5 py-3">
@@ -247,7 +399,7 @@ export default function CommandePage() {
                 ))}
               </ul>
 
-              {/* Totaux */}
+              {/* Итоги */}
               <div className="px-5 py-4 flex flex-col gap-2 border-t border-[#2A2A2A]">
                 <div className="flex justify-between">
                   <span className="text-[12.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">Sous-total</span>
@@ -255,16 +407,14 @@ export default function CommandePage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-[12.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">Livraison</span>
-                  {form.mode === "emporter"
-                    ? <span className="text-[13px] text-[#27AE60] font-[family-name:var(--font-dm-sans)]">Gratuit</span>
-                    : <span className="text-[13px] text-[#F0EAD6] font-[family-name:var(--font-dm-sans)]">€{deliveryCost.toFixed(2)}</span>
-                  }
+                  {form.mode === "emporter" || bonusApplies ? (
+                    <span className="text-[13px] text-[#27AE60] font-[family-name:var(--font-dm-sans)]">Gratuit</span>
+                  ) : deliveryStatus === "done" ? (
+                    <span className="text-[13px] text-[#F0EAD6] font-[family-name:var(--font-dm-sans)]">€{deliveryCost.toFixed(2)}</span>
+                  ) : (
+                    <span className="text-[12px] text-[#8A8A8A]/50 font-[family-name:var(--font-dm-sans)]">Calculé selon adresse</span>
+                  )}
                 </div>
-                {form.mode === "livraison" && (
-                  <p className="text-[11px] text-[#8A8A8A]/50 font-[family-name:var(--font-dm-sans)]">
-                    * Minimum · coût exact calculé selon l&apos;adresse
-                  </p>
-                )}
                 <div className="flex justify-between items-baseline pt-3 mt-1 border-t border-[#2A2A2A]">
                   <span className="font-[family-name:var(--font-cormorant)] text-[17px] text-[#F0EAD6]">Total</span>
                   <span className="font-[family-name:var(--font-cormorant)] text-[26px] font-semibold text-[#C8A96E]">
@@ -273,9 +423,9 @@ export default function CommandePage() {
                 </div>
               </div>
 
-              {/* Bouton desktop */}
+              {/* Кнопка для десктопа */}
               <div className="px-5 pb-5 hidden lg:block">
-                <SubmitBtn />
+                <SubmitBtn submitting={submitting} />
               </div>
             </div>
           </aside>
@@ -290,8 +440,7 @@ export default function CommandePage() {
 
 function StepsIndicator() {
   const steps = ["Panier", "Livraison", "Paiement"];
-  const current = 1; // 0-indexed
-
+  const current = 1;
   return (
     <nav aria-label="Étapes de la commande">
       <ol className="flex items-center gap-0">
@@ -347,9 +496,10 @@ interface FieldProps {
   type?: string;
   placeholder?: string;
   autoComplete?: string;
+  disabled?: boolean;
 }
 
-function Field({ label, value, onChange, onBlur, error, required, type = "text", placeholder, autoComplete }: FieldProps) {
+function Field({ label, value, onChange, onBlur, error, required, type = "text", placeholder, autoComplete, disabled }: FieldProps) {
   const id = `field-${label.toLowerCase().replace(/\s/g, "-")}`;
   return (
     <div className="flex flex-col gap-1.5">
@@ -364,9 +514,11 @@ function Field({ label, value, onChange, onBlur, error, required, type = "text",
         onBlur={onBlur}
         placeholder={placeholder}
         autoComplete={autoComplete}
+        disabled={disabled}
         className={[
           "w-full h-11 px-4 bg-[#111] border rounded-[4px] text-[13.5px] text-[#F0EAD6] placeholder:text-[#8A8A8A]/40",
           "outline-none transition-colors duration-200 font-[family-name:var(--font-dm-sans)]",
+          "disabled:opacity-50 disabled:cursor-not-allowed",
           error
             ? "border-[#C0392B] focus:border-[#C0392B]"
             : "border-[#2A2A2A] focus:border-[#C8A96E]",
@@ -382,15 +534,25 @@ function Field({ label, value, onChange, onBlur, error, required, type = "text",
   );
 }
 
-function SubmitBtn() {
+function SubmitBtn({ submitting }: { submitting: boolean }) {
   return (
     <button
       type="submit"
       form={FORM_ID}
-      className="flex items-center justify-center gap-2 w-full py-[14px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] active:bg-[#C8A96E] transition-colors duration-200 font-[family-name:var(--font-dm-sans)]"
+      disabled={submitting}
+      className="flex items-center justify-center gap-2 w-full py-[14px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] active:bg-[#C8A96E] transition-colors duration-200 font-[family-name:var(--font-dm-sans)] disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      Confirmer la commande
-      <ArrowRightIcon />
+      {submitting ? (
+        <>
+          <div className="w-4 h-4 border-2 border-[#0D0D0D]/30 border-t-[#0D0D0D] rounded-full animate-spin" />
+          Traitement…
+        </>
+      ) : (
+        <>
+          Confirmer la commande
+          <ArrowRightIcon />
+        </>
+      )}
     </button>
   );
 }
@@ -431,6 +593,15 @@ function CheckIcon() {
   return (
     <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+function CheckCircleIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" className="flex-shrink-0">
+      <polyline points="20 6 9 17 4 12" />
+      <circle cx="12" cy="12" r="10" />
     </svg>
   );
 }
