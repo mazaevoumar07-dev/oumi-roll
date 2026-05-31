@@ -39,6 +39,16 @@
 
 ---
 
+## Язык проекта
+
+- **Общение с разработчиком** — только русский язык
+- **Комментарии в коде** — русский язык
+- **Документация и спеки** — русский язык
+- **Сообщения коммитов и PR** — русский язык
+- **Текст для клиентов** (UI, API-ответы браузеру, сообщения об ошибках) — **французский язык**, не менять
+
+---
+
 # This is NOT the Next.js you know
 
 This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
