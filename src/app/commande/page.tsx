@@ -206,8 +206,14 @@ export default function CommandePage() {
         return;
       }
 
-      // Сохраняем client_secret в sessionStorage — страница оплаты его прочитает
-      sessionStorage.setItem(`pi_${data.payment_intent_id}`, data.client_secret);
+      // Сохраняем данные в sessionStorage — страница оплаты и подтверждения их прочитают
+      sessionStorage.setItem(`pi_${data.payment_intent_id}`, JSON.stringify({
+        clientSecret: data.client_secret,
+        totalAmount: data.total_amount,
+        email: form.email,
+        items: items.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
+        deliveryCost: effectiveDeliveryCost,
+      }));
 
       clearCart();
       closeCart();
