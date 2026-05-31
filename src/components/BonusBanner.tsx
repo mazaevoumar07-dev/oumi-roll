@@ -1,35 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useLang } from "@/context/LangContext";
-import { getBonusConfig, BONUS_MIN_QTY, type BonusConfig } from "@/lib/bonus-storage";
-import { getMenuItems } from "@/lib/menu-storage";
+import { useMenu, BONUS_MIN_QTY } from "@/context/MenuContext";
 
 export default function BonusBanner() {
   const { t } = useLang();
-  const [config, setConfig]     = useState<BonusConfig | null>(null);
-  const [giftName, setGiftName] = useState<string | null>(null);
+  const { promo } = useMenu();
 
-  useEffect(() => {
-    const cfg = getBonusConfig();
-    setConfig(cfg);
-    if (cfg.freeItem && cfg.freeItemId) {
-      const item = getMenuItems().find(i => i.id === cfg.freeItemId && i.available);
-      setGiftName(item?.name ?? null);
-    }
-  }, []);
+  if (!promo.is_active) return null;
 
-  const anyActive = config?.freeDelivery || (config?.freeItem && giftName);
-  if (!anyActive) return null;
-
-  let message = "";
-  if (config!.freeDelivery && config!.freeItem && giftName) {
-    message = t.bonus.both(BONUS_MIN_QTY, giftName);
-  } else if (config!.freeDelivery) {
-    message = t.bonus.delivery(BONUS_MIN_QTY);
-  } else if (giftName) {
-    message = t.bonus.gift(BONUS_MIN_QTY, giftName);
-  }
+  const message = promo.gift_item_name
+    ? t.bonus.both(BONUS_MIN_QTY, promo.gift_item_name)
+    : t.bonus.delivery(BONUS_MIN_QTY);
 
   return (
     <div className="bg-[#C8A96E] text-[#0D0D0D] py-2.5 px-6">
