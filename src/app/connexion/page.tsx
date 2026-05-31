@@ -3,9 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth, normalizePhone } from "@/context/AuthContext";
+import { useAuth, toE164 } from "@/context/AuthContext";
+import { createClient } from "@/lib/supabase/client";
 
-/* ===== PAGE ===== */
+/* ===== СТРАНИЦА ===== */
 
 type Mode = "login" | "register" | "reset";
 
@@ -19,7 +20,7 @@ export default function ConnexionPage() {
     <div className="min-h-[calc(100vh-72px)] flex items-center justify-center bg-[#0D0D0D] px-5 py-12">
       <div className="w-full max-w-[420px]">
 
-        {/* Brand mark */}
+        {/* Логотип */}
         <div className="flex justify-center mb-8">
           <Link href="/" className="flex flex-col items-center gap-1">
             <LogoIcon />
@@ -29,13 +30,13 @@ export default function ConnexionPage() {
           </Link>
         </div>
 
-        {/* Card */}
+        {/* Карточка */}
         <div className="bg-[#1A1A1A] border border-[#2A2A2A] rounded-[4px] overflow-hidden">
           {mode === "reset" ? (
             <ResetForm onBack={() => setMode("login")} />
           ) : (
             <>
-              {/* Tabs */}
+              {/* Вкладки */}
               <div className="flex border-b border-[#2A2A2A]">
                 {(["login", "register"] as const).map((m) => (
                   <button
@@ -63,7 +64,7 @@ export default function ConnexionPage() {
           )}
         </div>
 
-        {/* Continue without account */}
+        {/* Продолжить без аккаунта */}
         <p className="mt-5 text-center font-[family-name:var(--font-dm-sans)] text-[12.5px] text-[#8A8A8A]">
           Pas encore prêt ?{" "}
           <Link href="/#menu" className="text-[#C8A96E] hover:text-[#E2C07A] transition-colors">
@@ -76,65 +77,31 @@ export default function ConnexionPage() {
   );
 }
 
-/* ===== LOGIN FORM ===== */
+/* ===== ФОРМА ВХОДА ===== */
 
 function LoginForm({ onSuccess, onForgot }: { onSuccess: () => void; onForgot: () => void }) {
-  const { login } = useAuth();
+  const { signIn } = useAuth();
   const [phone, setPhone]       = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError]       = useState("");
-  const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
+  const [loading, setLoading]   = useState(false);
 
-  function getRemainingMinutes() {
-    if (!blockedUntil) return 0;
-    return Math.ceil((blockedUntil - Date.now()) / 60000);
-  }
-
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (!phone.trim() || !password.trim()) {
       setError("Veuillez remplir tous les champs.");
       return;
     }
-    const result = login(phone, password);
+    setLoading(true);
+    const result = await signIn(phone, password);
+    setLoading(false);
     if (result.success) {
       onSuccess();
-    } else if ("blockedUntil" in result && result.blockedUntil) {
-      setBlockedUntil(result.blockedUntil);
-      setError("");
     } else {
-      setBlockedUntil(null);
-      let msg = result.error;
-      if ("attemptsLeft" in result && result.attemptsLeft !== undefined && result.attemptsLeft <= 2) {
-        msg += ` (${result.attemptsLeft} tentative${result.attemptsLeft > 1 ? "s" : ""} restante${result.attemptsLeft > 1 ? "s" : ""})`;
-      }
-      setError(msg);
+      setError(result.error);
     }
-  }
-
-  if (blockedUntil && Date.now() < blockedUntil) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-4 text-center">
-        <div className="w-10 h-10 rounded-full border border-[#C0392B]/40 flex items-center justify-center text-[#C0392B]">
-          <LockClosedIcon />
-        </div>
-        <div>
-          <p className="font-[family-name:var(--font-cormorant)] text-[20px] text-[#F0EAD6] mb-1">Compte bloqué</p>
-          <p className="font-[family-name:var(--font-dm-sans)] text-[12.5px] text-[#8A8A8A] leading-[1.6]">
-            Trop de tentatives. Réessayez dans{" "}
-            <span className="text-[#F0EAD6]">{getRemainingMinutes()} minute{getRemainingMinutes() > 1 ? "s" : ""}</span>.
-          </p>
-        </div>
-        <button
-          onClick={() => { setBlockedUntil(null); setPhone(""); setPassword(""); }}
-          className="text-[12px] text-[#C8A96E] hover:text-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)]"
-        >
-          Réinitialiser le mot de passe
-        </button>
-      </div>
-    );
   }
 
   return (
@@ -153,9 +120,10 @@ function LoginForm({ onSuccess, onForgot }: { onSuccess: () => void; onForgot: (
 
       <button
         type="submit"
-        className="mt-1 w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)]"
+        disabled={loading}
+        className="mt-1 w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)] disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        Se connecter
+        {loading ? "Connexion…" : "Se connecter"}
       </button>
 
       <button
@@ -168,7 +136,7 @@ function LoginForm({ onSuccess, onForgot }: { onSuccess: () => void; onForgot: (
   );
 }
 
-/* ===== REGISTER FORM ===== */
+/* ===== ФОРМА РЕГИСТРАЦИИ ===== */
 
 interface RegData { prenom: string; nom: string; telephone: string; password: string; smsConsent: boolean }
 type RegErrors = Partial<Record<keyof Omit<RegData, "smsConsent">, string>>;
@@ -190,12 +158,21 @@ function validateReg(d: RegData): RegErrors {
 }
 
 function RegisterForm({ onSuccess, onLogin }: { onSuccess: () => void; onLogin: () => void }) {
-  const { register } = useAuth();
+  const { signUp, verifyOtp } = useAuth();
+
+  // Шаг 1 — форма регистрации
   const [data, setData]         = useState<RegData>({ prenom: "", nom: "", telephone: "", password: "", smsConsent: false });
   const [errors, setErrors]     = useState<RegErrors>({});
   const [touched, setTouched]   = useState<Partial<Record<string, boolean>>>({});
   const [showPass, setShowPass] = useState(false);
+  const [loading, setLoading]   = useState(false);
   const [serverError, setServerError] = useState("");
+
+  // Шаг 2 — верификация OTP
+  const [otpPhone, setOtpPhone] = useState<string | null>(null);
+  const [otpCode, setOtpCode]   = useState("");
+  const [otpError, setOtpError] = useState("");
+  const [otpLoading, setOtpLoading] = useState(false);
 
   function set(field: keyof RegData, value: string | boolean) {
     const next = { ...data, [field]: value } as RegData;
@@ -212,7 +189,7 @@ function RegisterForm({ onSuccess, onLogin }: { onSuccess: () => void; onLogin: 
     setErrors(prev => ({ ...prev, [field]: (e as RegErrors)[field as keyof RegErrors] }));
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleRegister(e: React.FormEvent) {
     e.preventDefault();
     setServerError("");
     const allTouched = Object.fromEntries(Object.keys(data).map(k => [k, true]));
@@ -221,16 +198,79 @@ function RegisterForm({ onSuccess, onLogin }: { onSuccess: () => void; onLogin: 
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
 
-    const result = register(data);
-    if (result.success) {
-      onSuccess();
-    } else {
+    setLoading(true);
+    const result = await signUp(data);
+    setLoading(false);
+
+    if (!result.success) {
       setServerError(result.error);
+    } else {
+      // Переходим к вводу OTP-кода
+      setOtpPhone(result.phone);
     }
   }
 
+  async function handleVerifyOtp(e: React.FormEvent) {
+    e.preventDefault();
+    setOtpError("");
+    if (otpCode.length !== 6 || !/^\d{6}$/.test(otpCode)) {
+      setOtpError("Le code doit contenir 6 chiffres.");
+      return;
+    }
+    setOtpLoading(true);
+    const result = await verifyOtp(otpPhone!, otpCode);
+    setOtpLoading(false);
+    if (result.success) {
+      onSuccess();
+    } else {
+      setOtpError(result.error);
+    }
+  }
+
+  /* ── Шаг 2: ввод OTP ── */
+  if (otpPhone) {
+    return (
+      <form onSubmit={handleVerifyOtp} noValidate className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1">
+          <p className="font-[family-name:var(--font-cormorant)] text-[20px] text-[#F0EAD6]">
+            Vérification du numéro
+          </p>
+          <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] leading-[1.6]">
+            Un code à 6 chiffres a été envoyé au{" "}
+            <span className="text-[#F0EAD6]">{otpPhone}</span>.
+          </p>
+        </div>
+
+        <Field
+          label="Code de vérification" type="tel" value={otpCode}
+          autoComplete="one-time-code" placeholder="123456"
+          onChange={v => setOtpCode(v.replace(/\D/g, "").slice(0, 6))}
+        />
+
+        {otpError && <ErrorBanner>{otpError}</ErrorBanner>}
+
+        <button
+          type="submit"
+          disabled={otpLoading}
+          className="w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)] disabled:opacity-50"
+        >
+          {otpLoading ? "Vérification…" : "Confirmer le code"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setOtpPhone(null)}
+          className="text-center text-[12px] text-[#8A8A8A] hover:text-[#C8A96E] transition-colors font-[family-name:var(--font-dm-sans)]"
+        >
+          ← Modifier le numéro
+        </button>
+      </form>
+    );
+  }
+
+  /* ── Шаг 1: форма регистрации ── */
   return (
-    <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
+    <form onSubmit={handleRegister} noValidate className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3">
         <Field label="Prénom" required value={data.prenom} error={errors.prenom} autoComplete="given-name"
           placeholder="Jean" onChange={v => set("prenom", v)} onBlur={() => blur("prenom")} />
@@ -245,7 +285,7 @@ function RegisterForm({ onSuccess, onLogin }: { onSuccess: () => void; onLogin: 
         onChange={v => set("password", v)} onBlur={() => blur("password")}
         onToggle={() => setShowPass(v => !v)} />
 
-      {/* RGPD SMS consent */}
+      {/* Согласие на SMS — обязательно по RGPD */}
       <label className="flex items-start gap-3 cursor-pointer group mt-1">
         <div
           className={[
@@ -271,9 +311,10 @@ function RegisterForm({ onSuccess, onLogin }: { onSuccess: () => void; onLogin: 
 
       <button
         type="submit"
-        className="mt-1 w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)]"
+        disabled={loading}
+        className="mt-1 w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)] disabled:opacity-50"
       >
-        Créer mon compte
+        {loading ? "Inscription…" : "Créer mon compte"}
       </button>
 
       <p className="text-center font-[family-name:var(--font-dm-sans)] text-[12px] text-[#8A8A8A]">
@@ -286,50 +327,85 @@ function RegisterForm({ onSuccess, onLogin }: { onSuccess: () => void; onLogin: 
   );
 }
 
-/* ===== RESET PASSWORD FORM ===== */
+/* ===== ФОРМА СБРОСА ПАРОЛЯ ===== */
 
 type ResetStep = 1 | 2 | 3;
 
 function ResetForm({ onBack }: { onBack: () => void }) {
-  const { updatePassword } = useAuth();
+  const supabase = createClient();
   const [step, setStep]       = useState<ResetStep>(1);
   const [phone, setPhone]     = useState("");
+  const [e164Phone, setE164Phone] = useState("");
   const [code, setCode]       = useState("");
   const [newPass, setNewPass] = useState("");
   const [showPass, setShowPass] = useState(false);
   const [error, setError]     = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSendCode(e: React.FormEvent) {
+  async function handleSendCode(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (!isValidPhone(phone)) { setError("Numéro de téléphone invalide."); return; }
-    // Phase 1: mock — any registered phone works; skip server call
+
+    setLoading(true);
+    const normalized = toE164(phone);
+    const { error: err } = await supabase.auth.signInWithOtp({ phone: normalized });
+    setLoading(false);
+
+    if (err) {
+      setError("Impossible d'envoyer le code. Vérifiez votre numéro.");
+      return;
+    }
+    setE164Phone(normalized);
     setStep(2);
   }
 
-  function handleVerifyCode(e: React.FormEvent) {
+  async function handleVerifyCode(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (code.length !== 6 || !/^\d{6}$/.test(code)) {
       setError("Le code doit contenir 6 chiffres.");
       return;
     }
-    // Phase 1: accept any 6-digit code
+    setLoading(true);
+    const { error: err } = await supabase.auth.verifyOtp({
+      phone: e164Phone,
+      token: code,
+      type: 'sms',
+    });
+    setLoading(false);
+
+    if (err) {
+      setError("Code incorrect ou expiré. Demandez un nouveau code.");
+      return;
+    }
     setStep(3);
   }
 
-  function handleReset(e: React.FormEvent) {
+  async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     setError("");
     if (newPass.length < 6) { setError("Minimum 6 caractères."); return; }
-    updatePassword(phone, newPass);
-    setStep(1); // done — go back to login
+
+    setLoading(true);
+    const { error: err } = await supabase.auth.updateUser({ password: newPass });
+    setLoading(false);
+
+    if (err) {
+      setError("Erreur lors de la mise à jour. Réessayez.");
+      return;
+    }
     onBack();
+  }
+
+  function isValidPhone(v: string): boolean {
+    const n = v.replace(/[\s\-\.]/g, "");
+    return /^(0[1-9]\d{8}|(\+33|0033)[1-9]\d{8})$/.test(n);
   }
 
   return (
     <div className="p-6">
-      {/* Header */}
+      {/* Заголовок */}
       <div className="flex items-center gap-3 mb-6">
         <button onClick={onBack} className="text-[#8A8A8A] hover:text-[#F0EAD6] transition-colors" aria-label="Retour">
           <ArrowLeftIcon />
@@ -339,7 +415,7 @@ function ResetForm({ onBack }: { onBack: () => void }) {
         </h2>
       </div>
 
-      {/* Step indicator */}
+      {/* Индикатор шагов */}
       <div className="flex items-center gap-1.5 mb-6">
         {([1, 2, 3] as ResetStep[]).map(s => (
           <div key={s} className={["h-0.5 flex-1 rounded-full transition-colors", s <= step ? "bg-[#C8A96E]" : "bg-[#2A2A2A]"].join(" ")} />
@@ -354,8 +430,9 @@ function ResetForm({ onBack }: { onBack: () => void }) {
           <Field label="Téléphone" type="tel" value={phone} autoComplete="tel"
             placeholder="06 12 34 56 78" onChange={setPhone} />
           {error && <ErrorBanner>{error}</ErrorBanner>}
-          <button type="submit" className="w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)]">
-            Envoyer le code
+          <button type="submit" disabled={loading}
+            className="w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)] disabled:opacity-50">
+            {loading ? "Envoi…" : "Envoyer le code"}
           </button>
         </form>
       )}
@@ -369,10 +446,12 @@ function ResetForm({ onBack }: { onBack: () => void }) {
           <Field label="Code de vérification" type="tel" value={code} autoComplete="one-time-code"
             placeholder="123456" onChange={v => setCode(v.replace(/\D/g, "").slice(0, 6))} />
           {error && <ErrorBanner>{error}</ErrorBanner>}
-          <button type="submit" className="w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)]">
-            Vérifier le code
+          <button type="submit" disabled={loading}
+            className="w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)] disabled:opacity-50">
+            {loading ? "Vérification…" : "Vérifier le code"}
           </button>
-          <button type="button" onClick={() => setStep(1)} className="text-center text-[12px] text-[#8A8A8A] hover:text-[#C8A96E] transition-colors font-[family-name:var(--font-dm-sans)]">
+          <button type="button" onClick={() => { setStep(1); setCode(""); setError(""); }}
+            className="text-center text-[12px] text-[#8A8A8A] hover:text-[#C8A96E] transition-colors font-[family-name:var(--font-dm-sans)]">
             Renvoyer le code
           </button>
         </form>
@@ -387,8 +466,9 @@ function ResetForm({ onBack }: { onBack: () => void }) {
             placeholder="Minimum 6 caractères" show={showPass}
             onChange={setNewPass} onToggle={() => setShowPass(v => !v)} />
           {error && <ErrorBanner>{error}</ErrorBanner>}
-          <button type="submit" className="w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)]">
-            Réinitialiser le mot de passe
+          <button type="submit" disabled={loading}
+            className="w-full py-[13px] bg-[#C8A96E] text-[#0D0D0D] text-[13px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)] disabled:opacity-50">
+            {loading ? "Mise à jour…" : "Réinitialiser le mot de passe"}
           </button>
         </form>
       )}
@@ -396,7 +476,7 @@ function ResetForm({ onBack }: { onBack: () => void }) {
   );
 }
 
-/* ===== REUSABLE FIELDS ===== */
+/* ===== ПЕРЕИСПОЛЬЗУЕМЫЕ ПОЛЯ ===== */
 
 interface FieldProps {
   label: string;
@@ -458,11 +538,9 @@ function PassField({ label, value, onChange, onBlur, error, required, placeholde
             error ? "border-[#C0392B]" : "border-[#2A2A2A] focus:border-[#C8A96E]",
           ].join(" ")}
         />
-        <button
-          type="button" onClick={onToggle}
+        <button type="button" onClick={onToggle}
           className="absolute right-3 top-1/2 -translate-y-1/2 text-[#8A8A8A] hover:text-[#F0EAD6] transition-colors"
-          aria-label={show ? "Masquer le mot de passe" : "Afficher le mot de passe"}
-        >
+          aria-label={show ? "Masquer le mot de passe" : "Afficher le mot de passe"}>
           {show ? <EyeOffIcon /> : <EyeIcon />}
         </button>
       </div>
@@ -486,7 +564,7 @@ function ErrorBanner({ children }: { children: React.ReactNode }) {
   );
 }
 
-/* ===== ICONS ===== */
+/* ===== ИКОНКИ ===== */
 
 function LogoIcon() {
   return (
@@ -522,15 +600,6 @@ function ArrowLeftIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <line x1="19" y1="12" x2="5" y2="12" />
       <polyline points="12 19 5 12 12 5" />
-    </svg>
-  );
-}
-
-function LockClosedIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="3" y="11" width="18" height="11" rx="2" />
-      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   );
 }
