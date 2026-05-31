@@ -1,7 +1,9 @@
 # Этап 2 — Backend
 
-**Статус:** Не начат  
+**Статус:** В процессе  
 **Предыдущий этап:** [Написание спецификаций](../завершённые/спецификации.md)
+
+> ⚠️ Стек изменился после первоначального плана: Neon → Supabase, Vercel Blob → Supabase Storage, F-13 GPS удалена.
 
 ---
 
@@ -14,71 +16,82 @@
 ## Что нужно сделать
 
 ### 1. Настройка окружения
-- [ ] Зарегистрировать аккаунты: Neon, Stripe, Twilio, Google Cloud
-- [ ] Включить Vercel Blob: Vercel Dashboard → Storage → Blob
-- [ ] Получить все API-ключи
-- [ ] Добавить переменные окружения в Vercel
-- [ ] Запустить миграции базы данных (`npm run db:migrate`)
-- [ ] Заполнить меню начальными данными (`npm run db:seed`)
-- [ ] Создать аккаунт администратора (`npm run create:admin`)
+- [x] Зарегистрировать аккаунты: Supabase, Stripe, Twilio, Google Cloud
+- [x] Написать `.env.local` с заглушками для всех переменных
+- [ ] Заполнить реальные ключи Supabase в `.env.local`
+- [ ] Заполнить реальные ключи Stripe в `.env.local`
+- [ ] Заполнить реальные ключи Twilio в `.env.local`
+- [ ] Заполнить реальный ключ Google Maps в `.env.local`
+- [ ] Добавить реальные координаты ресторана (RESTAURANT_LAT, RESTAURANT_LNG)
+- [ ] Запустить миграции в Supabase SQL Editor (001, 002, 003)
+- [ ] Создать бакет `menu-photos` в Supabase Storage (публичный)
+- [ ] Включить Phone Auth в Supabase + подключить Twilio
+- [ ] Заполнить меню через панель администратора
+- [ ] Создать аккаунт администратора через Supabase Dashboard
 
-### 2. База данных (Neon / PostgreSQL)
-- [ ] Написать миграции для всех таблиц: `users`, `menu_items`, `orders`, `order_items`, `courier_locations`, `promotions`, `password_reset_tokens`, `login_attempts`
+### 2. База данных (Supabase / PostgreSQL)
+- [x] Миграция 001 — все таблицы: `users`, `menu_items`, `orders`, `order_items`, `promotions`
+- [x] Миграция 002 — исправлен триггер создания профиля (first_name, last_name, sms_opt_in)
+- [x] Миграция 003 — добавлены поля `category` и `pieces` в `menu_items`
+- [ ] Запустить все три миграции в Supabase
 
 ### 3. API — функции для клиента
-- [ ] **F-01** `GET /api/menu` — список меню из БД
-- [ ] **F-02** Корзина — логика бонуса (F-12) на клиенте
-- [ ] **F-03** `POST /api/orders` — создание заказа через Stripe webhook
-- [ ] **F-04** `POST /api/delivery/calculate` — расчёт доставки через Google Maps
-- [ ] **F-05** `POST /api/orders/:id/cancel` — отмена заказа + возврат через Stripe
-- [ ] **F-06** `POST /api/auth/register`, `/login`, `/logout`, `/forgot-password`, `/reset-password`
-- [ ] **F-07** `GET /api/orders/:id` — статус заказа по токену
-- [ ] **F-07** `GET /api/users/me/orders` — история заказов для авторизованного клиента
-- [ ] **F-08** `POST /api/payment/intent` + `/api/payment/webhook` — Stripe оплата
-- [ ] **F-13** `POST /api/courier/location` + `GET /api/orders/:id/location` — GPS курьера
+- [x] **F-01** `GET /api/menu` — список меню из БД
+- [x] **F-02** Бонус проверяется сервером при создании Payment Intent
+- [x] **F-03** `POST /api/orders` — создание заказа через Stripe webhook
+- [x] **F-04** `POST /api/delivery/calculate` — расчёт доставки через Google Maps
+- [x] **F-05** `POST /api/orders/:id/cancel` — отмена + возврат через Stripe
+- [x] **F-06** Авторизация через Supabase Auth (без отдельных API-маршрутов)
+- [x] **F-07** `GET /api/users/me/orders` — история заказов
+- [x] **F-08** `POST /api/payment/intent` + `POST /api/payment/webhook`
+- [x] `GET /api/orders/:id` — статус заказа
+- [ ] **F-13** ~~GPS курьера~~ — **удалена из проекта**
 
 ### 4. API — панель администратора
-- [ ] **F-10** `GET/POST /api/admin/menu`, `PATCH /api/admin/menu/:id` — управление меню
-- [ ] **F-11** `GET /api/admin/orders`, `PATCH /api/admin/orders/:id` — управление заказами
-- [ ] **F-09** `POST /api/admin/sms/send` — SMS-рассылка через Twilio
-- [ ] **F-12** `GET/PATCH /api/admin/promotions` — управление бонусами
-- [ ] `POST /api/admin/login` — вход в панель
+- [x] **F-10** `GET/POST /api/admin/menu`, `PATCH /api/admin/menu/:id`
+- [x] **F-11** `GET /api/admin/orders`, `PATCH /api/admin/orders/:id`
+- [x] **F-09** `POST /api/admin/sms/send` — SMS-рассылка через Twilio
+- [x] **F-12** `GET/PATCH /api/admin/promotions`
+- [x] Вход в панель — через Supabase Auth (email + пароль)
+- [x] Защита `/admin/*` страниц через middleware (редирект на `/admin/login`)
 
 ### 5. Подключение frontend к backend
-- [ ] Страница меню — данные из API вместо статичных
-- [ ] Корзина — применение бонусов из API
-- [ ] Форма заказа — отправка на сервер
-- [ ] Страница оплаты — реальный Stripe Elements
-- [ ] Страница отслеживания — реальный статус из API + карта Google Maps
-- [ ] Вход / Регистрация — реальная аутентификация
-- [ ] Панель администратора — реальные данные
+- [x] Страница меню — данные из API, реальные фото
+- [x] Корзина — бонус из API
+- [x] Форма заказа — Email, расчёт доставки, реальный API
+- [x] Страница оплаты — реальный Stripe Elements
+- [x] Страница подтверждения — после оплаты
+- [x] Вход / Регистрация — Supabase Auth + OTP
+- [ ] Страница отслеживания — ~~удалена (F-13)~~
+- [ ] Панель администратора — реальные данные (сейчас на mock-данных)
 
-### 6. Безопасность и rate limiting
-- [ ] JWT middleware для защиты `/api/admin/*`
+### 6. Безопасность
+- [x] Защита `/admin/*` страниц через middleware
+- [x] Проверка роли `admin` в каждом API-маршруте
+- [x] Supabase RLS на всех таблицах
+- [x] Stripe webhook signature verification
 - [ ] Rate limiting через Next.js middleware
-- [ ] CORS настроен только на домен ресторана
+- [ ] CORS настроен на домен ресторана
 
 ### 7. Деплой и запуск
-- [ ] Проверить все переменные окружения в Vercel Production
-- [ ] Пройти чеклист из [deployment_spec.md](../../spec/deployment_spec.md)
-- [ ] Переключить Stripe с Test mode на Live mode
+- [ ] Добавить переменные окружения в Vercel Production
+- [ ] Запустить `npm run build` без ошибок
+- [ ] Пройти чеклист из [deployment_spec.md](../../docs/spec/deployment_spec.md)
+- [ ] Переключить Stripe с Test на Live mode
 - [ ] Провести тестовый заказ от начала до конца
 
 ---
 
-## Технический стек
-
-Подробнее — в [tech_spec/overview.md](../../docs/spec/tech_spec/overview.md)
+## Технический стек (актуальный)
 
 | Компонент | Технология |
 |---|---|
 | Backend | Next.js API Routes |
-| БД | PostgreSQL (Neon) |
+| БД + Auth + Storage | Supabase (PostgreSQL + Auth + Storage) |
 | Оплата | Stripe |
-| SMS | Twilio |
+| SMS | Twilio (через Supabase Auth для OTP, напрямую для рассылок) |
 | Геокодинг | Google Maps Geocoding API |
-| Карта | Google Maps JavaScript API |
-| Фото | Vercel Blob |
+| Фото | Supabase Storage (бакет `menu-photos`) |
 
 ---
 
