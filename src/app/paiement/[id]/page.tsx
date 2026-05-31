@@ -5,7 +5,26 @@ import { useParams, useRouter } from "next/navigation";
 import { loadStripe, type Stripe as StripeType } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 import Link from "next/link";
-import { getOrder, updateOrderStatus, type Order } from "@/types/order";
+
+/* ===== ДАННЫЕ СЕССИИ ОПЛАТЫ ===== */
+
+interface PaymentSession {
+  clientSecret: string;
+  totalAmount: number;
+  email: string;
+  items: Array<{ name: string; price: number; qty: number }>;
+  deliveryCost: number;
+}
+
+function readSession(paymentIntentId: string): PaymentSession | null {
+  try {
+    const raw = sessionStorage.getItem(`pi_${paymentIntentId}`);
+    if (!raw) return null;
+    return JSON.parse(raw) as PaymentSession;
+  } catch {
+    return null;
+  }
+}
 
 /* ===== STRIPE INIT ===== */
 
@@ -29,30 +48,30 @@ const STRIPE_APPEARANCE = {
   },
 };
 
-/* ===== ERROR MESSAGES ===== */
+/* ===== СООБЩЕНИЯ ОШИБОК STRIPE ===== */
 
 function stripeErrorMsg(code: string | undefined): string {
   switch (code) {
-    case "insufficient_funds":         return "Fonds insuffisants sur la carte.";
-    case "card_declined":              return "Paiement refusé. Contactez votre banque.";
-    case "expired_card":               return "Votre carte a expiré.";
-    case "incorrect_cvc":              return "Code de sécurité incorrect.";
-    case "incorrect_number":           return "Numéro de carte incorrect.";
-    case "processing_error":           return "Erreur de traitement. Réessayez.";
+    case "insufficient_funds":                    return "Fonds insuffisants sur la carte.";
+    case "card_declined":                         return "Paiement refusé. Contactez votre banque.";
+    case "expired_card":                          return "Votre carte a expiré.";
+    case "incorrect_cvc":                         return "Code de sécurité incorrect.";
+    case "incorrect_number":                      return "Numéro de carte incorrect.";
+    case "processing_error":                      return "Erreur de traitement. Réessayez.";
     case "payment_intent_authentication_failure": return "Authentification échouée. Réessayez.";
-    default:                           return "Paiement échoué. Réessayez ou utilisez une autre carte.";
+    default:                                      return "Paiement échoué. Réessayez ou utilisez une autre carte.";
   }
 }
 
-/* ===== CHECKOUT FORM ===== */
+/* ===== ФОРМА ОПЛАТЫ ===== */
 
-function CheckoutForm({ order }: { order: Order }) {
-  const stripe = useStripe();
+function CheckoutForm({ paymentIntentId, totalAmount }: { paymentIntentId: string; totalAmount: number }) {
+  const stripe   = useStripe();
   const elements = useElements();
-  const router = useRouter();
+  const router   = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
+  const [error,   setError]   = useState<string | null>(null);
+  const [ready,   setReady]   = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -72,7 +91,7 @@ function CheckoutForm({ order }: { order: Order }) {
       elements,
       redirect: "if_required",
       confirmParams: {
-        return_url: `${window.location.origin}/paiement/${order.id}`,
+        return_url: `${window.location.origin}/paiement/${paymentIntentId}`,
       },
     });
 
@@ -80,8 +99,7 @@ function CheckoutForm({ order }: { order: Order }) {
       setError(stripeErrorMsg(result.error.code));
       setLoading(false);
     } else if (result.paymentIntent?.status === "succeeded") {
-      updateOrderStatus(order.id, "nouveau");
-      router.replace(`/suivi/${order.id}`);
+      router.replace(`/confirmation/${paymentIntentId}`);
     }
   }
 
@@ -121,7 +139,7 @@ function CheckoutForm({ order }: { order: Order }) {
           </>
         ) : (
           <>
-            Payer €{order.total.toFixed(2)}
+            Payer €{totalAmount.toFixed(2)}
             <LockIcon />
           </>
         )}
@@ -138,60 +156,48 @@ function CheckoutForm({ order }: { order: Order }) {
 
 export default function PaiementPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
-  const [order, setOrder] = useState<Order | null | undefined>(undefined);
-  const [clientSecret, setClientSecret] = useState<string | null>(null);
-  const [initError, setInitError] = useState<string | null>(null);
+  const router  = useRouter();
   const initRef = useRef(false);
 
+  const [session, setSession]     = useState<PaymentSession | null | undefined>(undefined);
+  const [initError, setInitError] = useState<string | null>(null);
+
   useEffect(() => {
-    const init = setTimeout(async () => {
-      if (initRef.current) return;
-      initRef.current = true;
+    if (initRef.current) return;
+    initRef.current = true;
 
-      const o = getOrder(id);
-      setOrder(o ?? null);
-      if (!o) return;
+    const s = readSession(id);
 
-      // Returning from a 3DS redirect — check payment status from URL params
-      const params = new URLSearchParams(window.location.search);
-      const existingSecret = params.get("payment_intent_client_secret");
-      if (existingSecret) {
+    // Возврат после 3DS — проверяем статус платежа из URL
+    const params = new URLSearchParams(window.location.search);
+    const existingSecret = params.get("payment_intent_client_secret");
+
+    if (existingSecret) {
+      (async () => {
         const stripe = await stripePromise as StripeType | null;
-        if (!stripe) return;
+        if (!stripe) { setSession(null); return; }
         const { paymentIntent } = await stripe.retrievePaymentIntent(existingSecret);
         if (paymentIntent?.status === "succeeded") {
-          updateOrderStatus(id, "nouveau");
-          router.replace(`/suivi/${id}`);
+          router.replace(`/confirmation/${id}`);
           return;
         }
-        // Payment failed after 3DS — fall through to create a new intent
-      }
+        // 3DS не прошёл — остаёмся на странице оплаты
+        setSession(s);
+      })();
+      return;
+    }
 
-      if (o.status !== "pending_payment") return;
+    if (!s) {
+      setInitError("Session de paiement introuvable. Recommencez votre commande.");
+      setSession(null);
+      return;
+    }
 
-      try {
-        const res = await fetch("/api/payment/create-intent", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ amount: o.total, orderId: o.id }),
-        });
-        const data = await res.json() as { clientSecret?: string; error?: string };
-        if (data.clientSecret) {
-          setClientSecret(data.clientSecret);
-        } else {
-          setInitError("Impossible d'initialiser le paiement. Réessayez.");
-        }
-      } catch {
-        setInitError("Connexion impossible. Vérifiez votre réseau.");
-      }
-    }, 0);
-
-    return () => clearTimeout(init);
+    setSession(s);
   }, [id, router]);
 
-  /* ── Loading ── */
-  if (order === undefined || (order?.status === "pending_payment" && !clientSecret && !initError)) {
+  /* ── Загрузка ── */
+  if (session === undefined) {
     return (
       <div className="min-h-[calc(100vh-72px)] flex items-center justify-center bg-[#0D0D0D]">
         <div className="w-8 h-8 border-2 border-[#C8A96E]/20 border-t-[#C8A96E] rounded-full animate-spin" />
@@ -199,107 +205,78 @@ export default function PaiementPage() {
     );
   }
 
-  /* ── Not found ── */
-  if (!order) {
+  /* ── Сессия не найдена ── */
+  if (session === null || initError) {
     return (
       <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center gap-6 bg-[#0D0D0D] px-6 text-center">
         <p className="font-[family-name:var(--font-cormorant)] text-[28px] text-[#8A8A8A] font-light">
-          Commande introuvable
+          Session expirée
         </p>
-        <Link href="/" className="px-6 py-3 border border-[#2A2A2A] text-[#8A8A8A] text-[12.5px] tracking-[0.08em] uppercase rounded-[4px] hover:border-[#C8A96E]/40 hover:text-[#C8A96E]/70 transition-all font-[family-name:var(--font-dm-sans)]">
-          Retour à l&apos;accueil
-        </Link>
-      </div>
-    );
-  }
-
-  /* ── Already paid / cancelled ── */
-  if (order.status !== "pending_payment") {
-    return (
-      <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center gap-6 bg-[#0D0D0D] px-6 text-center">
-        <p className="font-[family-name:var(--font-cormorant)] text-[28px] text-[#F0EAD6] font-light">
-          {order.status === "annule" ? "Commande annulée" : "Paiement déjà effectué"}
+        <p className="text-[13.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)] max-w-xs">
+          {initError ?? "Votre session de paiement a expiré. Recommencez votre commande."}
         </p>
-        <Link href={`/suivi/${order.id}`} className="px-6 py-3 bg-[#C8A96E] text-[#0D0D0D] text-[12.5px] tracking-[0.08em] uppercase rounded-[4px] hover:bg-[#E2C07A] transition-all font-[family-name:var(--font-dm-sans)]">
-          Voir ma commande
-        </Link>
-      </div>
-    );
-  }
-
-  /* ── Init error ── */
-  if (initError) {
-    return (
-      <div className="min-h-[calc(100vh-72px)] flex flex-col items-center justify-center gap-6 bg-[#0D0D0D] px-6 text-center">
-        <p className="font-[family-name:var(--font-cormorant)] text-[28px] text-[#8A8A8A] font-light">
-          Paiement indisponible
-        </p>
-        <p className="text-[13.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">{initError}</p>
-        <button onClick={() => { initRef.current = false; setInitError(null); }}
-          className="px-6 py-3 border border-[#C8A96E]/40 text-[#C8A96E] text-[12.5px] tracking-[0.08em] uppercase rounded-[4px] hover:bg-[#C8A96E]/10 transition-all font-[family-name:var(--font-dm-sans)]"
+        <Link
+          href="/commande"
+          className="px-6 py-3 bg-[#C8A96E] text-[#0D0D0D] text-[12.5px] tracking-[0.08em] uppercase rounded-[4px] hover:bg-[#E2C07A] transition-all font-[family-name:var(--font-dm-sans)]"
         >
-          Réessayer
-        </button>
+          Recommencer
+        </Link>
       </div>
     );
   }
 
-  /* ── Main payment page ── */
+  /* ── Page principale ── */
   return (
     <div className="bg-[#0D0D0D] min-h-[calc(100vh-72px)]">
       <div className="max-w-[520px] mx-auto px-6 sm:px-8 py-12 lg:py-16">
 
-        {/* Steps */}
         <StepsIndicator />
 
-        {/* Header */}
+        {/* Заголовок */}
         <div className="mt-10 mb-8">
           <p className="text-[11px] tracking-[0.2em] uppercase text-[#C8A96E] font-[family-name:var(--font-dm-sans)] mb-1">
             Paiement sécurisé
           </p>
-          <h1 className="font-[family-name:var(--font-cormorant)] text-[38px] font-light text-[#F0EAD6] leading-none mb-1">
-            #{order.id}
-          </h1>
-          <p className="text-[22px] font-[family-name:var(--font-cormorant)] text-[#C8A96E] font-semibold">
-            €{order.total.toFixed(2)}
+          <p className="font-[family-name:var(--font-cormorant)] text-[30px] font-semibold text-[#C8A96E]">
+            €{session.totalAmount.toFixed(2)}
           </p>
         </div>
 
         <div className="h-px bg-[#2A2A2A] mb-8" />
 
-        {/* Order mini-summary */}
+        {/* Резюме заказа */}
         <div className="mb-8 flex flex-col gap-1.5">
-          {order.items.map(item => (
-            <div key={item.id} className="flex justify-between text-[12.5px] font-[family-name:var(--font-dm-sans)]">
+          {session.items.map((item, i) => (
+            <div key={i} className="flex justify-between text-[12.5px] font-[family-name:var(--font-dm-sans)]">
               <span className="text-[#8A8A8A]">{item.qty}× {item.name}</span>
               <span className="text-[#F0EAD6]">€{(item.price * item.qty).toFixed(2)}</span>
             </div>
           ))}
-          {order.deliveryCost > 0 && (
+          {session.deliveryCost > 0 && (
             <div className="flex justify-between text-[12.5px] font-[family-name:var(--font-dm-sans)]">
               <span className="text-[#8A8A8A]">Livraison</span>
-              <span className="text-[#F0EAD6]">€{order.deliveryCost.toFixed(2)}</span>
+              <span className="text-[#F0EAD6]">€{session.deliveryCost.toFixed(2)}</span>
             </div>
           )}
           <div className="flex justify-between pt-2 mt-1 border-t border-[#2A2A2A]">
             <span className="text-[#8A8A8A] font-[family-name:var(--font-dm-sans)] text-[12.5px]">Total</span>
             <span className="font-[family-name:var(--font-cormorant)] text-[20px] font-semibold text-[#C8A96E]">
-              €{order.total.toFixed(2)}
+              €{session.totalAmount.toFixed(2)}
             </span>
           </div>
         </div>
 
         <div className="h-px bg-[#2A2A2A] mb-8" />
 
-        {/* Stripe form */}
+        {/* Stripe Elements */}
         <Elements
           stripe={stripePromise}
-          options={{ clientSecret: clientSecret!, appearance: STRIPE_APPEARANCE }}
+          options={{ clientSecret: session.clientSecret, appearance: STRIPE_APPEARANCE }}
         >
-          <CheckoutForm order={order} />
+          <CheckoutForm paymentIntentId={id} totalAmount={session.totalAmount} />
         </Elements>
 
-        {/* Back link */}
+        {/* Назад */}
         <div className="mt-6 text-center">
           <Link
             href="/commande"
@@ -330,9 +307,9 @@ function StepsIndicator() {
             <div className="flex items-center gap-2">
               <span className={[
                 "flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-medium border transition-colors font-[family-name:var(--font-dm-sans)]",
-                i < current  ? "bg-[#C8A96E]/20 border-[#C8A96E]/40 text-[#C8A96E]" : "",
-                i === current ? "bg-[#C8A96E] border-[#C8A96E] text-[#0D0D0D]" : "",
-                i > current  ? "bg-transparent border-[#2A2A2A] text-[#8A8A8A]" : "",
+                i < current   ? "bg-[#C8A96E]/20 border-[#C8A96E]/40 text-[#C8A96E]" : "",
+                i === current  ? "bg-[#C8A96E] border-[#C8A96E] text-[#0D0D0D]" : "",
+                i > current   ? "bg-transparent border-[#2A2A2A] text-[#8A8A8A]" : "",
               ].join(" ")}>
                 {i < current ? <CheckIcon /> : i + 1}
               </span>
