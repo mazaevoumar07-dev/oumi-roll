@@ -1,10 +1,22 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { MenuItem } from "@/data/menu";
-import { getMenuItems, saveMenuItems, generateItemId } from "@/lib/menu-storage";
 
 /* ===== TYPES ===== */
+
+type MenuItem = {
+  id: string;
+  name: string;
+  description: string | null;
+  price: number;
+  original_price: number | null;
+  photo_url: string | null;
+  is_available: boolean;
+  is_visible: boolean;
+  category: string | null;
+  pieces: number | null;
+  created_at: string;
+};
 
 const CATEGORIES = ["California", "Makis", "Temaki", "Spécialités"] as const;
 type Category = (typeof CATEGORIES)[number];
@@ -16,7 +28,8 @@ type FormData = {
   price: string;
   originalPrice: string;
   pieces: string;
-  image: string;
+  imageFile: File | null;
+  imagePreview: string;
   available: boolean;
 };
 
@@ -29,22 +42,41 @@ const EMPTY_FORM: FormData = {
   price: "",
   originalPrice: "",
   pieces: "8",
-  image: "",
+  imageFile: null,
+  imagePreview: "",
   available: true,
 };
 
 /* ===== PAGE ===== */
 
 export default function AdminMenuPage() {
-  const [items, setItems]         = useState<MenuItem[]>([]);
-  const [modal, setModal]         = useState<Modal>(null);
-  const [form, setForm]           = useState<FormData>(EMPTY_FORM);
+  const [items, setItems]           = useState<MenuItem[]>([]);
+  const [modal, setModal]           = useState<Modal>(null);
+  const [form, setForm]             = useState<FormData>(EMPTY_FORM);
   const [imageError, setImageError] = useState("");
   const [saveError, setSaveError]   = useState("");
+  const [loadError, setLoadError]   = useState("");
+  const [saving, setSaving]         = useState(false);
   const [flashId, setFlashId]       = useState<string | null>(null);
   const fileInputRef                = useRef<HTMLInputElement>(null);
 
-  useEffect(() => { setItems(getMenuItems()); }, []);
+  const loadItems = useCallback(async () => {
+    try {
+      const res = await fetch("/api/admin/menu");
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        setLoadError(data.error ?? "Erreur de chargement");
+        return;
+      }
+      const data = await res.json() as MenuItem[];
+      setItems(data);
+      setLoadError("");
+    } catch {
+      setLoadError("Connexion impossible.");
+    }
+  }, []);
+
+  useEffect(() => { loadItems(); }, [loadItems]);
 
   function openAdd() {
     setForm(EMPTY_FORM);
@@ -56,13 +88,14 @@ export default function AdminMenuPage() {
   function openEdit(item: MenuItem) {
     setForm({
       name: item.name,
-      description: item.description,
-      category: item.category as Category,
+      description: item.description ?? "",
+      category: (item.category as Category) ?? "California",
       price: String(item.price),
-      originalPrice: item.originalPrice ? String(item.originalPrice) : "",
-      pieces: String(item.pieces),
-      image: item.image ?? "",
-      available: item.available,
+      originalPrice: item.original_price ? String(item.original_price) : "",
+      pieces: String(item.pieces ?? 8),
+      imageFile: null,
+      imagePreview: item.photo_url ?? "",
+      available: item.is_visible,
     });
     setImageError("");
     setSaveError("");
@@ -80,59 +113,75 @@ export default function AdminMenuPage() {
       return;
     }
     setImageError("");
-    const reader = new FileReader();
-    reader.onload = (ev) => setForm(f => ({ ...f, image: (ev.target?.result as string) ?? "" }));
-    reader.readAsDataURL(file);
+    const preview = URL.createObjectURL(file);
+    setForm(f => ({ ...f, imageFile: file, imagePreview: preview }));
   }
 
-  function persist(updated: MenuItem[]) {
+  async function handleToggleVisibility(item: MenuItem) {
+    const fd = new FormData();
+    fd.append("is_visible", String(!item.is_visible));
+
     try {
-      saveMenuItems(updated);
-      setItems(updated);
-      setSaveError("");
-      return true;
-    } catch (err) {
-      setSaveError((err as Error).message);
-      return false;
+      const res = await fetch(`/api/admin/menu/${item.id}`, { method: "PATCH", body: fd });
+      if (res.ok) {
+        const updated = await res.json() as MenuItem;
+        setItems(prev => prev.map(i => i.id === item.id ? updated : i));
+        setFlashId(item.id);
+        setTimeout(() => setFlashId(null), 1200);
+      }
+    } catch {
+      // игнорируем сетевые ошибки при быстром переключении
     }
   }
 
-  function handleToggleVisibility(id: string) {
-    const updated = items.map(i => i.id === id ? { ...i, available: !i.available } : i);
-    if (persist(updated)) {
-      setFlashId(id);
-      setTimeout(() => setFlashId(null), 1200);
-    }
-  }
-
-  function handleSave() {
+  async function handleSave() {
     const price = parseFloat(form.price);
     const pieces = parseInt(form.pieces);
-    const originalPrice = form.originalPrice ? parseFloat(form.originalPrice) : undefined;
-
     if (!form.name.trim() || isNaN(price) || price <= 0 || isNaN(pieces) || pieces < 1) return;
 
-    if (modal?.mode === "add") {
-      const id = generateItemId(form.name, items);
-      const newItem: MenuItem = {
-        id,
-        name: form.name.trim(),
-        description: form.description.trim(),
-        category: form.category,
-        price,
-        originalPrice,
-        pieces,
-        image: form.image || undefined,
-        available: true,
-      };
-      if (persist([...items, newItem])) closeModal();
-    } else if (modal?.mode === "edit") {
-      const updated = items.map(i =>
-        i.id === modal.item.id
-          ? { ...i, name: form.name.trim(), description: form.description.trim(), category: form.category, price, originalPrice, pieces, image: form.image || undefined, available: form.available }
-          : i
-      );
-      if (persist(updated)) closeModal();
+    setSaving(true);
+    setSaveError("");
+
+    try {
+      const fd = new FormData();
+      fd.append("name", form.name.trim());
+      fd.append("description", form.description.trim());
+      fd.append("category", form.category);
+      fd.append("price", String(price));
+      fd.append("pieces", String(pieces));
+      if (form.originalPrice) fd.append("original_price", form.originalPrice);
+      if (form.imageFile) fd.append("photo", form.imageFile);
+
+      let res: Response;
+
+      if (modal?.mode === "add") {
+        res = await fetch("/api/admin/menu", { method: "POST", body: fd });
+      } else if (modal?.mode === "edit") {
+        fd.append("is_visible", String(form.available));
+        res = await fetch(`/api/admin/menu/${modal.item.id}`, { method: "PATCH", body: fd });
+      } else {
+        return;
+      }
+
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        setSaveError(data.error ?? "Erreur lors de l'enregistrement");
+        return;
+      }
+
+      const saved = await res.json() as MenuItem;
+
+      if (modal?.mode === "add") {
+        setItems(prev => [...prev, saved]);
+      } else if (modal?.mode === "edit") {
+        setItems(prev => prev.map(i => i.id === saved.id ? saved : i));
+      }
+
+      closeModal();
+    } catch {
+      setSaveError("Connexion impossible. Veuillez réessayer.");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -141,8 +190,8 @@ export default function AdminMenuPage() {
     parseFloat(form.price) > 0 &&
     parseInt(form.pieces) >= 1;
 
-  const active = items.filter(i => i.available).length;
-  const hidden = items.filter(i => !i.available).length;
+  const active = items.filter(i => i.is_visible).length;
+  const hidden = items.filter(i => !i.is_visible).length;
 
   return (
     <div className="bg-[#0D0D0D] min-h-screen">
@@ -169,6 +218,12 @@ export default function AdminMenuPage() {
 
         <div className="h-px bg-[#2A2A2A] mb-8" />
 
+        {loadError && (
+          <div className="mb-6 p-4 bg-[#C0392B]/10 border border-[#C0392B]/30 rounded-[4px]">
+            <p className="text-[13px] text-[#C0392B] font-[family-name:var(--font-dm-sans)]">{loadError}</p>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="flex gap-4 mb-8 flex-wrap">
           <StatPill label="Total" value={items.length} />
@@ -184,21 +239,16 @@ export default function AdminMenuPage() {
               item={item}
               flashing={flashId === item.id}
               onEdit={() => openEdit(item)}
-              onToggle={() => handleToggleVisibility(item.id)}
+              onToggle={() => handleToggleVisibility(item)}
             />
           ))}
-          {items.length === 0 && (
+          {items.length === 0 && !loadError && (
             <p className="text-center py-16 text-[13px] text-[#8A8A8A]/50 font-[family-name:var(--font-dm-sans)]">
               Aucun plat. Commencez par en ajouter un.
             </p>
           )}
         </div>
 
-        {saveError && (
-          <div className="mt-6 p-4 bg-[#C0392B]/10 border border-[#C0392B]/30 rounded-[4px]">
-            <p className="text-[13px] text-[#C0392B] font-[family-name:var(--font-dm-sans)]">{saveError}</p>
-          </div>
-        )}
       </div>
 
       {modal && (
@@ -208,7 +258,8 @@ export default function AdminMenuPage() {
           setForm={setForm}
           imageError={imageError}
           saveError={saveError}
-          canSave={canSave}
+          canSave={canSave && !saving}
+          saving={saving}
           fileInputRef={fileInputRef}
           onImageChange={handleImageChange}
           onSave={handleSave}
@@ -233,9 +284,9 @@ function ItemRow({
     <div className="flex items-center gap-4 p-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-[4px] hover:border-[#3A3A3A] transition-colors">
       {/* Thumbnail */}
       <div className="w-12 h-12 flex-shrink-0 rounded-[3px] overflow-hidden bg-[#0F0F0F] relative">
-        {item.image ? (
+        {item.photo_url ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={item.image} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
+          <img src={item.photo_url} alt={item.name} className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center opacity-30">
             <MiniSushiIcon />
@@ -249,10 +300,12 @@ function ItemRow({
           <span className="font-[family-name:var(--font-cormorant)] text-[18px] text-[#F0EAD6] font-medium leading-tight truncate">
             {item.name}
           </span>
-          <span className="text-[10px] tracking-[0.12em] uppercase text-[#C8A96E]/50 font-[family-name:var(--font-dm-sans)] flex-shrink-0">
-            {item.category}
-          </span>
-          {item.available ? (
+          {item.category && (
+            <span className="text-[10px] tracking-[0.12em] uppercase text-[#C8A96E]/50 font-[family-name:var(--font-dm-sans)] flex-shrink-0">
+              {item.category}
+            </span>
+          )}
+          {item.is_visible ? (
             <span className="px-2 py-[3px] bg-[#27AE60]/10 border border-[#27AE60]/25 text-[#27AE60] text-[10px] tracking-[0.1em] uppercase rounded-[2px] font-[family-name:var(--font-dm-sans)] flex-shrink-0">
               Actif
             </span>
@@ -264,16 +317,18 @@ function ItemRow({
         </div>
         <div className="flex items-center gap-2.5 mt-0.5">
           <span className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#C8A96E] font-medium">
-            €{item.price.toFixed(2)}
+            €{Number(item.price).toFixed(2)}
           </span>
-          {item.originalPrice && (
+          {item.original_price && (
             <span className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#8A8A8A]/50 line-through">
-              €{item.originalPrice.toFixed(2)}
+              €{Number(item.original_price).toFixed(2)}
             </span>
           )}
-          <span className="text-[11px] text-[#8A8A8A]/35 font-[family-name:var(--font-dm-sans)]">
-            · {item.pieces === 1 ? "1 pièce" : `${item.pieces} pièces`}
-          </span>
+          {item.pieces && (
+            <span className="text-[11px] text-[#8A8A8A]/35 font-[family-name:var(--font-dm-sans)]">
+              · {item.pieces === 1 ? "1 pièce" : `${item.pieces} pièces`}
+            </span>
+          )}
         </div>
       </div>
 
@@ -286,15 +341,15 @@ function ItemRow({
         )}
         <button
           onClick={onToggle}
-          title={item.available ? "Masquer du menu" : "Rendre visible"}
+          title={item.is_visible ? "Masquer du menu" : "Rendre visible"}
           className={[
             "flex items-center justify-center w-8 h-8 rounded-[4px] border transition-colors",
-            item.available
+            item.is_visible
               ? "border-[#2A2A2A] text-[#8A8A8A] hover:border-[#C0392B]/40 hover:text-[#C0392B]/70"
               : "border-[#27AE60]/30 text-[#27AE60]/60 hover:border-[#27AE60] hover:text-[#27AE60]",
           ].join(" ")}
         >
-          {item.available ? <EyeOffIcon /> : <EyeIcon />}
+          {item.is_visible ? <EyeOffIcon /> : <EyeIcon />}
         </button>
         <button
           onClick={onEdit}
@@ -311,7 +366,7 @@ function ItemRow({
 /* ===== FORM MODAL ===== */
 
 function ItemFormModal({
-  mode, form, setForm, imageError, saveError, canSave, fileInputRef, onImageChange, onSave, onClose,
+  mode, form, setForm, imageError, saveError, canSave, saving, fileInputRef, onImageChange, onSave, onClose,
 }: {
   mode: "add" | "edit";
   form: FormData;
@@ -319,6 +374,7 @@ function ItemFormModal({
   imageError: string;
   saveError: string;
   canSave: boolean;
+  saving: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onImageChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onSave: () => void;
@@ -430,10 +486,10 @@ function ItemFormModal({
 
           <FormField label="Photo" hint="JPEG · PNG · WebP · max 5 Mo">
             <div className="flex gap-3 items-start">
-              {form.image && (
+              {form.imagePreview && (
                 <div className="w-14 h-14 flex-shrink-0 rounded-[3px] overflow-hidden bg-[#0F0F0F] relative">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={form.image} alt="Aperçu" className="absolute inset-0 w-full h-full object-cover" />
+                  <img src={form.imagePreview} alt="Aperçu" className="absolute inset-0 w-full h-full object-cover" />
                 </div>
               )}
               <div className="flex flex-col gap-1.5 flex-1">
@@ -450,12 +506,12 @@ function ItemFormModal({
                   className="flex items-center gap-2 px-4 py-3 bg-[#111] border border-[#2A2A2A] hover:border-[#C8A96E]/40 rounded-[4px] text-[12.5px] text-[#8A8A8A] hover:text-[#C8A96E]/70 cursor-pointer transition-colors font-[family-name:var(--font-dm-sans)]"
                 >
                   <UploadIcon />
-                  {form.image ? "Changer la photo" : "Choisir une photo"}
+                  {form.imagePreview ? "Changer la photo" : "Choisir une photo"}
                 </label>
-                {form.image && (
+                {form.imagePreview && (
                   <button
                     type="button"
-                    onClick={() => setForm(f => ({ ...f, image: "" }))}
+                    onClick={() => setForm(f => ({ ...f, imageFile: null, imagePreview: "" }))}
                     className="text-left text-[11.5px] text-[#8A8A8A]/40 hover:text-[#C0392B]/60 transition-colors font-[family-name:var(--font-dm-sans)]"
                   >
                     Supprimer la photo
@@ -525,7 +581,7 @@ function ItemFormModal({
                 : "bg-[#C8A96E]/30 text-[#0D0D0D]/50 cursor-not-allowed",
             ].join(" ")}
           >
-            {mode === "add" ? "Ajouter au menu" : "Enregistrer"}
+            {saving ? "Enregistrement…" : mode === "add" ? "Ajouter au menu" : "Enregistrer"}
           </button>
         </div>
       </div>

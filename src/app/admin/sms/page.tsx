@@ -10,19 +10,6 @@ type SendStatus =
   | { type: "done"; sent: number; failed: number; total: number }
   | { type: "error"; message: string };
 
-/* ===== STORAGE HELPER ===== */
-
-function getSmsSubscribers(): string[] {
-  try {
-    const raw = localStorage.getItem("oumi_users");
-    if (!raw) return [];
-    const users = JSON.parse(raw) as Array<{ telephone: string; smsConsent: boolean }>;
-    return users.filter(u => u.smsConsent).map(u => u.telephone);
-  } catch {
-    return [];
-  }
-}
-
 /* ===== CONSTANTS ===== */
 
 const MAX_CHARS = 160;
@@ -30,30 +17,35 @@ const MAX_CHARS = 160;
 /* ===== PAGE ===== */
 
 export default function AdminSmsPage() {
-  const [message, setMessage]     = useState("");
-  const [subscribers, setSubscribers] = useState<string[]>([]);
+  const [message, setMessage]         = useState("");
+  const [subscriberCount, setSubscriberCount] = useState<number | null>(null);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [status, setStatus]       = useState<SendStatus>({ type: "idle" });
-  const textareaRef               = useRef<HTMLTextAreaElement>(null);
+  const [status, setStatus]           = useState<SendStatus>({ type: "idle" });
+  const textareaRef                   = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const load = setTimeout(() => setSubscribers(getSmsSubscribers()), 0);
-    return () => clearTimeout(load);
+    fetch("/api/admin/sms/send")
+      .then(r => r.ok ? r.json() : null)
+      .then((data: { count?: number } | null) => {
+        if (data?.count !== undefined) setSubscriberCount(data.count);
+      })
+      .catch(() => setSubscriberCount(0));
   }, []);
 
-  const chars    = message.length;
+  const chars     = message.length;
   const overLimit = chars > MAX_CHARS;
-  const canSend  = message.trim().length > 0 && !overLimit && subscribers.length > 0;
+  const count     = subscriberCount ?? 0;
+  const canSend   = message.trim().length > 0 && !overLimit && count > 0;
 
   async function send() {
     setShowConfirm(false);
     setStatus({ type: "sending" });
 
     try {
-      const res = await fetch("/api/sms/send-promo", {
+      const res = await fetch("/api/admin/sms/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: message.trim(), phones: subscribers }),
+        body: JSON.stringify({ message: message.trim() }),
       });
       const data = await res.json() as { sent?: number; failed?: number; total?: number; error?: string };
 
@@ -91,7 +83,7 @@ export default function AdminSmsPage() {
           </div>
           <div>
             <p className="text-[13.5px] text-[#F0EAD6] font-[family-name:var(--font-dm-sans)] font-medium">
-              {subscribers.length} abonné{subscribers.length !== 1 ? "s" : ""}
+              {subscriberCount === null ? "…" : count} abonné{count !== 1 ? "s" : ""}
             </p>
             <p className="text-[11.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
               Clients ayant accepté de recevoir des SMS
@@ -134,7 +126,7 @@ export default function AdminSmsPage() {
                   setMessage(e.target.value);
                   if (status.type === "done" || status.type === "error") setStatus({ type: "idle" });
                 }}
-                placeholder="Ex : 🎉 Profitez de -20% sur tous nos roллы ce weekend ! Code : OUMI20 — oumiroll.fr"
+                placeholder="Ex : 🎉 Profitez de -20% sur tous nos roullés ce weekend ! Code : OUMI20 — oumiroll.fr"
                 rows={5}
                 className={[
                   "w-full px-4 py-3 bg-[#111] border rounded-[4px] text-[13.5px] text-[#F0EAD6] placeholder:text-[#8A8A8A]/40",
@@ -172,7 +164,7 @@ export default function AdminSmsPage() {
                   {message}
                 </p>
                 <p className="mt-3 text-[11px] text-[#8A8A8A]/40 font-[family-name:var(--font-dm-sans)]">
-                  De : OUMIROLL · À : {subscribers.length} destinataire{subscribers.length !== 1 ? "s" : ""}
+                  De : OUMIROLL · À : {count} destinataire{count !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>
@@ -185,7 +177,7 @@ export default function AdminSmsPage() {
                 Confirmer l&apos;envoi ?
               </p>
               <p className="text-[12.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)] mb-4">
-                Ce SMS sera envoyé à <strong className="text-[#F0EAD6]">{subscribers.length}</strong> abonné{subscribers.length !== 1 ? "s" : ""}. Cette action est irréversible.
+                Ce SMS sera envoyé à <strong className="text-[#F0EAD6]">{count}</strong> abonné{count !== 1 ? "s" : ""}. Cette action est irréversible.
               </p>
               <div className="flex gap-3">
                 <button
@@ -224,13 +216,13 @@ export default function AdminSmsPage() {
               ) : (
                 <>
                   <SendIcon />
-                  Envoyer à {subscribers.length} abonné{subscribers.length !== 1 ? "s" : ""}
+                  Envoyer à {count} abonné{count !== 1 ? "s" : ""}
                 </>
               )}
             </button>
           )}
 
-          {subscribers.length === 0 && (
+          {count === 0 && subscriberCount !== null && (
             <p className="text-center text-[12px] text-[#8A8A8A]/50 font-[family-name:var(--font-dm-sans)]">
               Aucun abonné SMS pour l&apos;instant.
             </p>
