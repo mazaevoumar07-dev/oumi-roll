@@ -1,31 +1,56 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { getAllOrders, updateOrderStatus, type Order } from "@/types/order";
+
+/* ===== TYPES ===== */
+
+type OrderItem = {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  is_gift: boolean;
+};
+
+type Order = {
+  id: string;
+  order_number: number;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email: string;
+  delivery_type: "delivery" | "pickup";
+  address: string | null;
+  delivery_cost: number;
+  total_amount: number;
+  status: "new" | "preparing" | "in_delivery" | "completed" | "cancelled";
+  payment_status: "pending" | "paid" | "failed";
+  created_at: string;
+  cancelled_at: string | null;
+  order_items: OrderItem[];
+};
+
+type FilterKey = "actifs" | "tous" | Order["status"];
 
 /* ===== CONSTANTS ===== */
 
 const REFRESH_INTERVAL = 30_000;
 
 const STATUS_LABEL: Record<Order["status"], string> = {
-  pending_payment: "Paiement en attente",
-  nouveau:         "Nouveau",
-  en_preparation:  "En préparation",
-  en_livraison:    "En livraison",
-  livre:           "Livré",
-  annule:          "Annulé",
+  new:         "Nouveau",
+  preparing:   "En préparation",
+  in_delivery: "En livraison",
+  completed:   "Livré",
+  cancelled:   "Annulé",
 };
 
 const STATUS_COLOR: Record<Order["status"], string> = {
-  pending_payment: "text-[#8A8A8A] border-[#3A3A3A] bg-[#2A2A2A]",
-  nouveau:         "text-[#C8A96E] border-[#C8A96E]/40 bg-[#C8A96E]/10",
-  en_preparation:  "text-[#5B9BD5] border-[#5B9BD5]/40 bg-[#5B9BD5]/10",
-  en_livraison:    "text-[#E8A438] border-[#E8A438]/40 bg-[#E8A438]/10",
-  livre:           "text-[#27AE60] border-[#27AE60]/40 bg-[#27AE60]/10",
-  annule:          "text-[#8A8A8A] border-[#3A3A3A] bg-[#2A2A2A]",
+  new:         "text-[#C8A96E] border-[#C8A96E]/40 bg-[#C8A96E]/10",
+  preparing:   "text-[#5B9BD5] border-[#5B9BD5]/40 bg-[#5B9BD5]/10",
+  in_delivery: "text-[#E8A438] border-[#E8A438]/40 bg-[#E8A438]/10",
+  completed:   "text-[#27AE60] border-[#27AE60]/40 bg-[#27AE60]/10",
+  cancelled:   "text-[#8A8A8A] border-[#3A3A3A] bg-[#2A2A2A]",
 };
-
-type FilterKey = "actifs" | "tous" | Order["status"];
 
 /* ===== AUDIO HELPER ===== */
 
@@ -47,7 +72,7 @@ function playNewOrderBeep() {
       osc.stop(t + 0.25);
     });
   } catch {
-    // AudioContext not available (SSR or blocked)
+    // AudioContext non disponible
   }
 }
 
@@ -55,7 +80,7 @@ function playNewOrderBeep() {
 
 function timeAgo(iso: string): string {
   const diff = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
-  if (diff < 60)  return `${diff}s`;
+  if (diff < 60)   return `${diff}s`;
   if (diff < 3600) return `${Math.floor(diff / 60)} min`;
   return `${Math.floor(diff / 3600)}h`;
 }
@@ -67,27 +92,42 @@ function fmtTime(iso: string): string {
 /* ===== PAGE ===== */
 
 export default function AdminCommandesPage() {
-  const [orders, setOrders]           = useState<Order[]>([]);
-  const [filter, setFilter]           = useState<FilterKey>("actifs");
+  const [orders, setOrders]             = useState<Order[]>([]);
+  const [filter, setFilter]             = useState<FilterKey>("actifs");
   const [highlightIds, setHighlightIds] = useState<Set<string>>(new Set());
   const [lastRefresh, setLastRefresh]   = useState<Date>(new Date());
-  const knownIdsRef                   = useRef<Set<string>>(new Set());
-  const timerRef                      = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [loadError, setLoadError]       = useState<string | null>(null);
+  const [updating, setUpdating]         = useState<Set<string>>(new Set());
+  const knownIdsRef                     = useRef<Set<string>>(new Set());
+  const timerRef                        = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const load = useCallback((isRefresh = false) => {
-    const fresh = getAllOrders();
-    if (isRefresh) {
-      const newIds = fresh
-        .filter(o => o.status === "nouveau" && !knownIdsRef.current.has(o.id))
-        .map(o => o.id);
-      if (newIds.length > 0) {
-        playNewOrderBeep();
-        setHighlightIds(prev => new Set([...prev, ...newIds]));
+  const load = useCallback(async (isRefresh = false) => {
+    try {
+      const res = await fetch("/api/admin/orders");
+      if (!res.ok) {
+        const data = await res.json() as { error?: string };
+        setLoadError(data.error ?? "Erreur de chargement");
+        return;
       }
+      const fresh = await res.json() as Order[];
+      setLoadError(null);
+
+      if (isRefresh) {
+        const newIds = fresh
+          .filter(o => o.status === "new" && !knownIdsRef.current.has(o.id))
+          .map(o => o.id);
+        if (newIds.length > 0) {
+          playNewOrderBeep();
+          setHighlightIds(prev => new Set([...prev, ...newIds]));
+        }
+      }
+
+      fresh.forEach(o => knownIdsRef.current.add(o.id));
+      setOrders(fresh);
+      setLastRefresh(new Date());
+    } catch {
+      setLoadError("Connexion impossible.");
     }
-    fresh.forEach(o => knownIdsRef.current.add(o.id));
-    setOrders(fresh);
-    setLastRefresh(new Date());
   }, []);
 
   useEffect(() => {
@@ -96,19 +136,30 @@ export default function AdminCommandesPage() {
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [load]);
 
-  function handleStatusChange(id: string, status: Order["status"]) {
-    updateOrderStatus(id, status);
-    setHighlightIds(prev => { const s = new Set(prev); s.delete(id); return s; });
-    load(false);
+  async function handleStatusChange(id: string, status: Order["status"]) {
+    setUpdating(prev => new Set([...prev, id]));
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) {
+        setHighlightIds(prev => { const s = new Set(prev); s.delete(id); return s; });
+        setOrders(prev => prev.map(o => o.id === id ? { ...o, status } : o));
+      }
+    } finally {
+      setUpdating(prev => { const s = new Set(prev); s.delete(id); return s; });
+    }
   }
 
   const filtered = orders.filter(o => {
-    if (filter === "tous") return true;
-    if (filter === "actifs") return !["livre", "annule", "pending_payment"].includes(o.status);
+    if (filter === "tous")   return true;
+    if (filter === "actifs") return !["completed", "cancelled"].includes(o.status);
     return o.status === filter;
   });
 
-  const countNouveau = orders.filter(o => o.status === "nouveau").length;
+  const countNew = orders.filter(o => o.status === "new").length;
 
   return (
     <div className="bg-[#0D0D0D] min-h-screen">
@@ -140,16 +191,23 @@ export default function AdminCommandesPage() {
 
         <div className="h-px bg-[#2A2A2A] mb-8" />
 
+        {/* Error */}
+        {loadError && (
+          <div className="mb-6 p-4 bg-[#C0392B]/10 border border-[#C0392B]/30 rounded-[4px]">
+            <p className="text-[13px] text-[#C0392B] font-[family-name:var(--font-dm-sans)]">{loadError}</p>
+          </div>
+        )}
+
         {/* Stats */}
         <div className="flex gap-4 mb-8 flex-wrap">
           <StatPill label="Total" value={orders.length} />
-          <StatPill label="Actifs" value={orders.filter(o => !["livre", "annule", "pending_payment"].includes(o.status)).length} accent />
-          {countNouveau > 0 && <StatPill label="Nouveaux" value={countNouveau} pulse />}
+          <StatPill label="Actifs" value={orders.filter(o => !["completed", "cancelled"].includes(o.status)).length} accent />
+          {countNew > 0 && <StatPill label="Nouveaux" value={countNew} pulse />}
         </div>
 
         {/* Filters */}
         <div className="flex items-center gap-2 mb-7 overflow-x-auto pb-1 -mx-6 px-6 sm:mx-0 sm:px-0 [&::-webkit-scrollbar]:hidden">
-          {(["actifs", "tous", "nouveau", "en_preparation", "en_livraison", "livre", "annule"] as FilterKey[]).map(f => (
+          {(["actifs", "tous", "new", "preparing", "in_delivery", "completed", "cancelled"] as FilterKey[]).map(f => (
             <button
               key={f}
               onClick={() => setFilter(f)}
@@ -182,6 +240,7 @@ export default function AdminCommandesPage() {
                 key={order.id}
                 order={order}
                 isNew={highlightIds.has(order.id)}
+                isUpdating={updating.has(order.id)}
                 onStatusChange={handleStatusChange}
               />
             ))
@@ -196,13 +255,14 @@ export default function AdminCommandesPage() {
 /* ===== ORDER CARD ===== */
 
 function OrderCard({
-  order, isNew, onStatusChange,
+  order, isNew, isUpdating, onStatusChange,
 }: {
   order: Order;
   isNew: boolean;
+  isUpdating: boolean;
   onStatusChange: (id: string, status: Order["status"]) => void;
 }) {
-  const isTerminal = order.status === "livre" || order.status === "annule";
+  const isTerminal = order.status === "completed" || order.status === "cancelled";
 
   return (
     <article
@@ -211,6 +271,7 @@ function OrderCard({
         isNew
           ? "border-[#C8A96E]/60 shadow-[0_0_24px_rgba(200,169,110,0.12)]"
           : "border-[#2A2A2A]",
+        isUpdating ? "opacity-60" : "",
       ].join(" ")}
     >
       {/* Card header */}
@@ -222,20 +283,15 @@ function OrderCard({
             </span>
           )}
           <span className="font-[family-name:var(--font-dm-sans)] text-[13px] font-semibold text-[#F0EAD6] tracking-[0.05em]">
-            {order.id}
+            #{order.order_number}
           </span>
           <span className="text-[12px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
-            {fmtTime(order.createdAt)} · il y a {timeAgo(order.createdAt)}
+            {fmtTime(order.created_at)} · il y a {timeAgo(order.created_at)}
           </span>
         </div>
         <div className="flex items-center gap-2.5">
-          <span className={[
-            "px-2.5 py-[4px] rounded-[2px] border text-[10px] tracking-[0.1em] uppercase font-[family-name:var(--font-dm-sans)]",
-            order.mode === "livraison"
-              ? "text-[#8A8A8A] border-[#3A3A3A] bg-[#222]"
-              : "text-[#8A8A8A] border-[#3A3A3A] bg-[#222]",
-          ].join(" ")}>
-            {order.mode === "livraison" ? "Livraison" : "À emporter"}
+          <span className="px-2.5 py-[4px] rounded-[2px] border text-[10px] tracking-[0.1em] uppercase font-[family-name:var(--font-dm-sans)] text-[#8A8A8A] border-[#3A3A3A] bg-[#222]">
+            {order.delivery_type === "delivery" ? "Livraison" : "À emporter"}
           </span>
           <span className={["px-2.5 py-[4px] rounded-[2px] border text-[10px] tracking-[0.1em] uppercase font-[family-name:var(--font-dm-sans)]", STATUS_COLOR[order.status]].join(" ")}>
             {STATUS_LABEL[order.status]}
@@ -251,30 +307,30 @@ function OrderCard({
           {/* Client */}
           <div className="flex items-center gap-4 flex-wrap">
             <span className="font-[family-name:var(--font-dm-sans)] text-[13.5px] text-[#F0EAD6] font-medium">
-              {order.prenom} {order.nom}
+              {order.first_name} {order.last_name}
             </span>
             <a
-              href={`tel:${order.telephone}`}
+              href={`tel:${order.phone}`}
               className="flex items-center gap-1.5 text-[12.5px] text-[#C8A96E]/70 hover:text-[#C8A96E] transition-colors font-[family-name:var(--font-dm-sans)]"
             >
               <PhoneIcon />
-              {order.telephone}
+              {order.phone}
             </a>
           </div>
 
           {/* Address */}
-          {order.mode === "livraison" && order.adresse && (
+          {order.delivery_type === "delivery" && order.address && (
             <div className="flex items-start gap-1.5 text-[12px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
               <PinIcon />
-              <span>{order.adresse}</span>
+              <span>{order.address}</span>
             </div>
           )}
 
           {/* Items */}
           <div className="flex flex-col gap-1">
-            {order.items.map((item, i) => (
-              <span key={i} className="text-[12px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
-                {item.qty}× {item.name}
+            {order.order_items.map((item) => (
+              <span key={item.id} className="text-[12px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
+                {item.quantity}× {item.name}{item.is_gift && " 🎁"}
               </span>
             ))}
           </div>
@@ -287,36 +343,24 @@ function OrderCard({
               Total
             </p>
             <p className="font-[family-name:var(--font-cormorant)] text-[26px] font-semibold text-[#F0EAD6] leading-none">
-              €{order.total.toFixed(2)}
+              €{Number(order.total_amount).toFixed(2)}
             </p>
-            {order.mode === "livraison" && (
+            {order.delivery_type === "delivery" && Number(order.delivery_cost) > 0 && (
               <p className="text-[11px] text-[#8A8A8A]/50 font-[family-name:var(--font-dm-sans)] mt-0.5">
-                dont €{order.deliveryCost.toFixed(2)} livraison
+                dont €{Number(order.delivery_cost).toFixed(2)} livraison
               </p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Courier link — shown when en_livraison */}
-      {order.status === "en_livraison" && (
-        <div className="px-5 py-3 border-t border-[#252525] flex items-center gap-3 flex-wrap">
-          <span className="text-[11.5px] text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
-            Lien livreur&nbsp;:
-          </span>
-          <code className="text-[11.5px] text-[#C8A96E]/80 font-mono bg-[#111] px-2 py-1 rounded-[3px] select-all">
-            /courier?order={order.id}
-          </code>
-        </div>
-      )}
-
       {/* Card footer: actions */}
-      {!isTerminal && order.status !== "pending_payment" && (
+      {!isTerminal && (
         <div className="flex items-center gap-2.5 px-5 py-3.5 border-t border-[#252525] flex-wrap">
           <ActionButtons order={order} onStatusChange={onStatusChange} />
         </div>
       )}
-      {order.status === "livre" && (
+      {order.status === "completed" && (
         <div className="px-5 py-3 border-t border-[#252525]">
           <span className="text-[11.5px] text-[#27AE60]/60 font-[family-name:var(--font-dm-sans)]">
             Commande terminée — aucune action possible
@@ -330,36 +374,35 @@ function OrderCard({
 /* ===== ACTION BUTTONS ===== */
 
 function ActionButtons({ order, onStatusChange }: { order: Order; onStatusChange: (id: string, s: Order["status"]) => void }) {
-  const { id, status, mode } = order;
+  const { id, status, delivery_type } = order;
 
   return (
     <>
-      {status === "nouveau" && (
-        <ActionBtn primary onClick={() => onStatusChange(id, "en_preparation")}>
+      {status === "new" && (
+        <ActionBtn primary onClick={() => onStatusChange(id, "preparing")}>
           <CheckIcon /> Accepter
         </ActionBtn>
       )}
 
-      {status === "en_preparation" && mode === "livraison" && (
-        <ActionBtn primary onClick={() => onStatusChange(id, "en_livraison")}>
+      {status === "preparing" && delivery_type === "delivery" && (
+        <ActionBtn primary onClick={() => onStatusChange(id, "in_delivery")}>
           <TruckIcon /> Transmettre au livreur
         </ActionBtn>
       )}
 
-      {status === "en_preparation" && mode === "emporter" && (
-        <ActionBtn primary onClick={() => onStatusChange(id, "livre")}>
+      {status === "preparing" && delivery_type === "pickup" && (
+        <ActionBtn primary onClick={() => onStatusChange(id, "completed")}>
           <CheckIcon /> Prêt à emporter
         </ActionBtn>
       )}
 
-      {status === "en_livraison" && (
-        <ActionBtn primary onClick={() => onStatusChange(id, "livre")}>
+      {status === "in_delivery" && (
+        <ActionBtn primary onClick={() => onStatusChange(id, "completed")}>
           <CheckIcon /> Marquer livré
         </ActionBtn>
       )}
 
-      {/* Cancel — admin can always cancel except terminal statuses */}
-      <ActionBtn danger onClick={() => onStatusChange(id, "annule")}>
+      <ActionBtn danger onClick={() => onStatusChange(id, "cancelled")}>
         <XIcon /> Annuler
       </ActionBtn>
     </>

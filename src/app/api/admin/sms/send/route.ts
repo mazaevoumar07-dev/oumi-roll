@@ -2,6 +2,26 @@ import { NextResponse } from 'next/server'
 import twilio from 'twilio'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
+// GET /api/admin/sms/send — количество SMS-подписчиков
+export async function GET() {
+  const session = await createClient()
+  const { data: { user } } = await session.auth.getUser()
+  if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })
+
+  const admin = createAdminClient()
+  const { data: profile } = await admin.from('users').select('role').eq('id', user.id).single()
+  if (profile?.role !== 'admin') return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
+
+  const { count, error } = await admin
+    .from('users')
+    .select('id', { count: 'exact', head: true })
+    .eq('sms_opt_in', true)
+
+  if (error) return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+
+  return NextResponse.json({ count: count ?? 0 })
+}
+
 const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
 
 // Инструкция отписки обязательна по французскому закону L.34-5
