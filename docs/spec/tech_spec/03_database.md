@@ -74,6 +74,7 @@
 | status | TEXT | Статус заказа |
 | payment_status | TEXT | Статус оплаты: `'pending'`, `'paid'`, `'failed'` |
 | stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe (UNIQUE — защита от дублей при повторных webhook) |
+| comment | TEXT | Комментарий клиента к заказу (аллергии, предпочтения, код домофона; NULL если не указан) |
 | created_at | TIMESTAMP | Время создания заказа |
 | cancelled_at | TIMESTAMP | Время отмены (NULL если не отменён) |
 

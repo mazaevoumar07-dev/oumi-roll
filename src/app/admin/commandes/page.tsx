@@ -27,6 +27,7 @@ type Order = {
   payment_status: "pending" | "paid" | "failed";
   created_at: string;
   cancelled_at: string | null;
+  comment: string | null;
   order_items: OrderItem[];
 };
 
@@ -334,6 +335,16 @@ function OrderCard({
               </span>
             ))}
           </div>
+
+          {/* Commentaire */}
+          {order.comment && (
+            <div className="flex items-start gap-1.5 mt-1 px-3 py-2 bg-[#C8A96E]/5 border border-[#C8A96E]/20 rounded-[4px]">
+              <CommentIcon />
+              <span className="text-[12px] text-[#C8A96E]/80 font-[family-name:var(--font-dm-sans)] leading-[1.5]">
+                {order.comment}
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Right: total */}
@@ -494,6 +505,14 @@ function XIcon() {
   return (
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
       <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function CommentIcon() {
+  return (
+    <svg width="12" height="12" className="mt-0.5 flex-shrink-0 text-[#C8A96E]/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
     </svg>
   );
 }
