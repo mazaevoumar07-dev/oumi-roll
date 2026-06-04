@@ -16,6 +16,7 @@ interface FormData {
   email: string;
   mode: "livraison" | "emporter";
   adresse: string;
+  commentaire: string;
 }
 
 type FormErrors = Partial<Record<keyof FormData, string>>;
@@ -55,7 +56,7 @@ export default function CommandePage() {
   const router = useRouter();
 
   const [form, setForm] = useState<FormData>({
-    prenom: "", nom: "", telephone: "", email: "", mode: "livraison", adresse: "",
+    prenom: "", nom: "", telephone: "", email: "", mode: "livraison", adresse: "", commentaire: "",
   });
   const [errors,  setErrors]  = useState<FormErrors>({});
   const [touched, setTouched] = useState<Touched>({});
@@ -190,6 +191,7 @@ export default function CommandePage() {
           address:    form.mode === "livraison" ? form.adresse : undefined,
           delivery_cost: effectiveDeliveryCost,
           items: items.map(i => ({ menu_item_id: i.id, quantity: i.qty })),
+          comment: form.commentaire || undefined,
         }),
       });
 
@@ -359,6 +361,17 @@ export default function CommandePage() {
                   </p>
                 )}
               </div>
+            </FormSection>
+
+            {/* Комментарий к заказу */}
+            <FormSection title="Commentaire">
+              <TextareaField
+                label="Instructions particulières"
+                placeholder="Allergies, préférences, code d'entrée..."
+                value={form.commentaire}
+                onChange={v => setForm(f => ({ ...f, commentaire: v }))}
+                maxLength={300}
+              />
             </FormSection>
 
             {/* Ошибка отправки */}
@@ -534,6 +547,37 @@ function Field({ label, value, onChange, onBlur, error, required, type = "text",
         <p className="text-[11.5px] text-[#C0392B] font-[family-name:var(--font-dm-sans)] flex items-center gap-1.5">
           <ErrorDotIcon />
           {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function TextareaField({ label, value, onChange, placeholder, maxLength }: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  maxLength?: number;
+}) {
+  const id = `field-${label.toLowerCase().replace(/\s/g, "-")}`;
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-[11px] tracking-[0.14em] uppercase text-[#8A8A8A] font-[family-name:var(--font-dm-sans)]">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        maxLength={maxLength}
+        rows={3}
+        className="w-full px-4 py-3 bg-[#111] border border-[#2A2A2A] rounded-[4px] text-[13.5px] text-[#F0EAD6] placeholder:text-[#8A8A8A]/40 outline-none transition-colors duration-200 font-[family-name:var(--font-dm-sans)] focus:border-[#C8A96E] resize-none"
+      />
+      {maxLength && (
+        <p className="text-[11px] text-[#8A8A8A]/40 font-[family-name:var(--font-dm-sans)] text-right">
+          {value.length}/{maxLength}
         </p>
       )}
     </div>

@@ -80,6 +80,7 @@ export async function POST(request: Request) {
       status: 'new',
       payment_status: 'paid',
       stripe_payment_id: paymentIntent.id,
+      comment: meta.comment || null,
     })
     .select('id')
     .single()

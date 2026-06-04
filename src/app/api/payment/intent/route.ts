@@ -18,6 +18,7 @@ interface IntentBody {
   address?: string
   delivery_cost: number
   items: CartItem[]
+  comment?: string
 }
 
 type CartSnapshot = {
@@ -152,6 +153,7 @@ export async function POST(request: Request) {
         delivery_cost: String(deliveryCost),
         total_amount: String(totalAmount),
         items: JSON.stringify(cartSnapshot),
+        comment: body.comment?.trim() ?? '',
       },
     })
 
