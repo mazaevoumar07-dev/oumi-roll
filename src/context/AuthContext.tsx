@@ -130,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     })
     if (error) {
+      console.error('[signUp] Supabase error:', error.message, error.status)
       if (error.message.toLowerCase().includes('already registered')) {
         return {
           success: false,
