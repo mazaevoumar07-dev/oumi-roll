@@ -17,7 +17,7 @@ export async function GET() {
       id, order_number, delivery_type, address, delivery_cost,
       total_amount, status, payment_status, created_at, cancelled_at,
       order_items (
-        id, name, price, quantity, is_gift
+        id, menu_item_id, name, price, quantity, is_gift
       )
     `)
     .eq('user_id', user.id)
