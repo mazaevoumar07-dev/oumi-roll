@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/context/AuthContext";
 import { useCart } from "@/context/CartContext";
 import { useMenu } from "@/context/MenuContext";
+import { createClient } from "@/lib/supabase/client";
 
 /* ===== ТИПЫ ===== */
 
@@ -72,6 +73,10 @@ export default function OrdersPage() {
   // id заказа, для которого показывается уведомление
   const [notice, setNotice] = useState<{ orderId: string; text: string } | null>(null);
 
+  // Состояния удаления аккаунта
+  const [deleteStep, setDeleteStep] = useState<"idle" | "confirm" | "deleting">("idle");
+  const [deleteError, setDeleteError] = useState("");
+
   useEffect(() => {
     if (!authLoading && !user) {
       router.replace("/connexion");
@@ -89,6 +94,24 @@ export default function OrdersPage() {
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [user]);
+
+  async function handleDeleteAccount() {
+    setDeleteError("");
+    setDeleteStep("deleting");
+
+    const res = await fetch("/api/users/me", { method: "DELETE" });
+
+    if (!res.ok) {
+      setDeleteStep("confirm");
+      setDeleteError("Une erreur est survenue. Veuillez réessayer.");
+      return;
+    }
+
+    // Сессия теперь недействительна — разлогиниваем локально и редиректим
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.replace("/");
+  }
 
   function handleRepeat(order: Order) {
     const repeatableItems = order.order_items.filter((i) => !i.is_gift);
@@ -253,6 +276,70 @@ export default function OrdersPage() {
         >
           ← Retour au menu
         </Link>
+
+        {/* Зона опасности — удаление аккаунта (RGPD ст. 17) */}
+        <div className="border-t border-[#1E1E1E] pt-8 mt-4 flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-[family-name:var(--font-dm-sans)] text-[11px] tracking-[0.14em] uppercase text-[#8A8A8A]">
+              Zone de danger
+            </h2>
+          </div>
+
+          {deleteStep === "idle" && (
+            <button
+              onClick={() => setDeleteStep("confirm")}
+              className="self-start font-[family-name:var(--font-dm-sans)] text-[12.5px] text-[#8A8A8A] hover:text-[#C0392B] transition-colors underline underline-offset-2"
+            >
+              Supprimer mon compte
+            </button>
+          )}
+
+          {deleteStep === "confirm" && (
+            <div className="flex flex-col gap-4 border border-[#C0392B]/30 rounded-[4px] p-5 bg-[#C0392B]/5">
+              <div className="flex flex-col gap-1.5">
+                <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#F0EAD6] font-medium">
+                  Êtes-vous sûr de vouloir supprimer votre compte ?
+                </p>
+                <p className="font-[family-name:var(--font-dm-sans)] text-[12.5px] text-[#8A8A8A] leading-[1.7]">
+                  Cette action est irréversible. Vos données personnelles (nom, téléphone, adresse)
+                  seront anonymisées conformément à l&apos;article 17 du RGPD. L&apos;historique de vos
+                  commandes sera conservé sous forme anonymisée pour nos obligations légales.
+                </p>
+              </div>
+
+              {deleteError && (
+                <p className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#C0392B]">
+                  {deleteError}
+                </p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleDeleteAccount}
+                  className="px-5 py-[10px] bg-[#C0392B] text-white text-[12px] tracking-[0.06em] uppercase font-medium rounded-[4px] hover:bg-[#E74C3C] transition-colors font-[family-name:var(--font-dm-sans)]"
+                >
+                  Confirmer la suppression
+                </button>
+                <button
+                  onClick={() => { setDeleteStep("idle"); setDeleteError(""); }}
+                  className="px-5 py-[10px] border border-[#2A2A2A] text-[#8A8A8A] text-[12px] tracking-[0.06em] uppercase rounded-[4px] hover:text-[#F0EAD6] hover:border-[#3A3A3A] transition-colors font-[family-name:var(--font-dm-sans)]"
+                >
+                  Annuler
+                </button>
+              </div>
+            </div>
+          )}
+
+          {deleteStep === "deleting" && (
+            <div className="flex items-center gap-3">
+              <div className="w-4 h-4 border border-[#C0392B]/40 border-t-[#C0392B] rounded-full animate-spin" />
+              <span className="font-[family-name:var(--font-dm-sans)] text-[12.5px] text-[#8A8A8A]">
+                Suppression en cours…
+              </span>
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
