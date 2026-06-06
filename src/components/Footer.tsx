@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useLang } from "@/context/LangContext";
 
 const ADDRESS     = "6 rue Flammarion, 72100 Le Mans";
@@ -128,11 +129,16 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-[#1E1E1E]">
-        <div className="max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10 py-4 flex items-center justify-between gap-4 flex-wrap">
           <span className="font-[family-name:var(--font-dm-sans)] text-[11px] text-[#3A3A3A] tracking-[0.04em]">
             {t.footer.copyright}
           </span>
-          <div className="w-8 h-px bg-[#C8A96E]/30" />
+          <Link
+            href="/politique-de-confidentialite"
+            className="font-[family-name:var(--font-dm-sans)] text-[11px] text-[#3A3A3A] hover:text-[#C8A96E] transition-colors tracking-[0.04em]"
+          >
+            Politique de confidentialité
+          </Link>
         </div>
       </div>
 
