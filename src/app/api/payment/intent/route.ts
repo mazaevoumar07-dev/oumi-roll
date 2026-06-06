@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { rateLimit, getIp } from '@/lib/rate-limit'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -30,6 +31,10 @@ type CartSnapshot = {
 }
 
 export async function POST(request: Request) {
+  if (!rateLimit(`intent:${getIp(request)}`, 5, 60_000)) {
+    return NextResponse.json({ error: 'Trop de requêtes. Réessayez dans une minute.' }, { status: 429 })
+  }
+
   try {
     const body = await request.json() as IntentBody
 

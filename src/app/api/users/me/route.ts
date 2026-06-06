@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { rateLimit, getIp } from '@/lib/rate-limit'
 
-export async function DELETE() {
+export async function DELETE(request: Request) {
+  if (!rateLimit(`delete-account:${getIp(request)}`, 3, 3_600_000)) {
+    return NextResponse.json({ error: 'Trop de requêtes. Réessayez dans une heure.' }, { status: 429 })
+  }
+
   // Проверяем авторизацию
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
