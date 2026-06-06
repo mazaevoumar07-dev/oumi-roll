@@ -1,8 +1,33 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import twilio from 'twilio'
 import { createAdminClient } from '@/lib/supabase/server'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+
+async function notifyAdmin(orderNumber: number, meta: Stripe.Metadata) {
+  const adminPhone = process.env.ADMIN_PHONE
+  if (!adminPhone) return
+
+  const deliveryLabel = meta.delivery_type === 'delivery' ? 'Livraison' : 'À emporter'
+  const total = Number(meta.total_amount).toFixed(2)
+  const name = `${meta.first_name} ${meta.last_name.charAt(0)}.`
+
+  const body = `Nouvelle commande #${orderNumber}\n${deliveryLabel} — ${total} €\n${name} — ${meta.phone}`
+
+  try {
+    await twilioClient.messages.create({
+      body,
+      from: process.env.TWILIO_PHONE_NUMBER!,
+      to: adminPhone,
+    })
+  } catch (err) {
+    // SMS-уведомление некритично — заказ уже создан, просто логируем
+    console.error('[webhook] Erreur SMS admin:', err)
+  }
+}
 
 // Next.js must not parse the body — Stripe needs the raw bytes for signature verification
 export const config = { api: { bodyParser: false } }
@@ -82,7 +107,7 @@ export async function POST(request: Request) {
       stripe_payment_id: paymentIntent.id,
       comment: meta.comment || null,
     })
-    .select('id')
+    .select('id, order_number')
     .single()
 
   if (orderError || !order) {
@@ -107,6 +132,9 @@ export async function POST(request: Request) {
     console.error('[webhook] Failed to insert order items:', itemsError)
   }
 
-  console.log(`[webhook] Order ${order.id} created for payment ${paymentIntent.id}`)
+  // SMS-уведомление администратору — fire-and-forget, не блокирует ответ Stripe
+  await notifyAdmin(order.order_number, meta)
+
+  console.log(`[webhook] Order ${order.id} (#${order.order_number}) created for payment ${paymentIntent.id}`)
   return NextResponse.json({ received: true })
 }
