@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { rateLimit, getIp } from '@/lib/rate-limit'
 
 // Update these to the restaurant's exact coordinates
 const RESTAURANT_LAT = Number(process.env.RESTAURANT_LAT ?? 47.9986)
@@ -35,6 +36,10 @@ function getDeliveryCost(distanceKm: number): number | null {
 }
 
 export async function POST(request: Request) {
+  if (!rateLimit(`delivery:${getIp(request)}`, 10, 60_000)) {
+    return NextResponse.json({ error: 'Trop de requêtes. Réessayez dans une minute.' }, { status: 429 })
+  }
+
   try {
     const { address } = await request.json() as { address?: string }
 
