@@ -18,22 +18,22 @@
 ### 1. Настройка окружения
 - [x] Зарегистрировать аккаунты: Supabase, Stripe, Twilio, Google Cloud
 - [x] Написать `.env.local` с заглушками для всех переменных
-- [ ] Заполнить реальные ключи Supabase в `.env.local`
-- [ ] Заполнить реальные ключи Stripe в `.env.local`
-- [ ] Заполнить реальные ключи Twilio в `.env.local`
-- [ ] Заполнить реальный ключ Google Maps в `.env.local`
-- [ ] Добавить реальные координаты ресторана (RESTAURANT_LAT, RESTAURANT_LNG)
-- [ ] Запустить миграции в Supabase SQL Editor (001, 002, 003)
-- [ ] Создать бакет `menu-photos` в Supabase Storage (публичный)
-- [ ] Включить Phone Auth в Supabase + подключить Twilio
+- [x] Заполнить реальные ключи Supabase в `.env.local`
+- [x] Заполнить реальные ключи Stripe в `.env.local`
+- [x] Заполнить реальные ключи Twilio в `.env.local`
+- [x] Заполнить реальный ключ Google Maps в `.env.local`
+- [x] Добавить реальные координаты ресторана (RESTAURANT_LAT, RESTAURANT_LNG)
+- [x] Запустить миграции в Supabase SQL Editor (001, 002, 003)
+- [x] Создать бакет `menu-photos` в Supabase Storage (публичный)
+- [x] Включить Phone Auth в Supabase + подключить Twilio
 - [ ] Заполнить меню через панель администратора
-- [ ] Создать аккаунт администратора через Supabase Dashboard
+- [x] Создать аккаунт администратора через Supabase Dashboard
 
 ### 2. База данных (Supabase / PostgreSQL)
 - [x] Миграция 001 — все таблицы: `users`, `menu_items`, `orders`, `order_items`, `promotions`
 - [x] Миграция 002 — исправлен триггер создания профиля (first_name, last_name, sms_opt_in)
 - [x] Миграция 003 — добавлены поля `category` и `pieces` в `menu_items`
-- [ ] Запустить все три миграции в Supabase
+- [x] Запустить все три миграции в Supabase
 
 ### 3. API — функции для клиента
 - [x] **F-01** `GET /api/menu` — список меню из БД

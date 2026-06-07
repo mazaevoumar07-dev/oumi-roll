@@ -29,9 +29,6 @@ async function notifyAdmin(orderNumber: number, meta: Stripe.Metadata) {
   }
 }
 
-// Next.js must not parse the body — Stripe needs the raw bytes for signature verification
-export const config = { api: { bodyParser: false } }
-
 type CartItemSnapshot = {
   id: string
   name: string
