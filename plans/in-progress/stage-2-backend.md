@@ -24,7 +24,7 @@
 - [ ] Заполнить реальный ключ Google Maps в `.env.local`
 - [ ] Добавить реальные координаты ресторана (RESTAURANT_LAT, RESTAURANT_LNG)
 - [x] Запустить миграции в Supabase SQL Editor (001, 002, 003)
-- [ ] Создать бакет `menu-photos` в Supabase Storage (публичный)
+- [x] Создать бакет `menu-photos` в Supabase Storage (публичный)
 - [ ] Включить Phone Auth в Supabase + подключить Twilio
 - [ ] Заполнить меню через панель администратора
 - [ ] Создать аккаунт администратора через Supabase Dashboard
