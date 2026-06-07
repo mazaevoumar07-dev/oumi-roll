@@ -74,8 +74,8 @@
 - [x] CORS настроен на домен ресторана
 
 ### 7. Деплой и запуск
-- [ ] Добавить переменные окружения в Vercel Production
-- [ ] Запустить `npm run build` без ошибок
+- [x] Добавить переменные окружения в Vercel Production
+- [x] Запустить `npm run build` без ошибок
 - [ ] Пройти чеклист из [deployment_spec.md](../../docs/spec/deployment_spec.md)
 - [ ] Переключить Stripe с Test на Live mode
 - [ ] Провести тестовый заказ от начала до конца
