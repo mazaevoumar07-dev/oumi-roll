@@ -27,7 +27,7 @@
 - [x] Создать бакет `menu-photos` в Supabase Storage (публичный)
 - [ ] Включить Phone Auth в Supabase + подключить Twilio
 - [ ] Заполнить меню через панель администратора
-- [ ] Создать аккаунт администратора через Supabase Dashboard
+- [x] Создать аккаунт администратора через Supabase Dashboard
 
 ### 2. База данных (Supabase / PostgreSQL)
 - [x] Миграция 001 — все таблицы: `users`, `menu_items`, `orders`, `order_items`, `promotions`
