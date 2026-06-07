@@ -18,11 +18,11 @@
 ### 1. Настройка окружения
 - [x] Зарегистрировать аккаунты: Supabase, Stripe, Twilio, Google Cloud
 - [x] Написать `.env.local` с заглушками для всех переменных
-- [ ] Заполнить реальные ключи Supabase в `.env.local`
-- [ ] Заполнить реальные ключи Stripe в `.env.local`
-- [ ] Заполнить реальные ключи Twilio в `.env.local`
-- [ ] Заполнить реальный ключ Google Maps в `.env.local`
-- [ ] Добавить реальные координаты ресторана (RESTAURANT_LAT, RESTAURANT_LNG)
+- [x] Заполнить реальные ключи Supabase в `.env.local`
+- [x] Заполнить реальные ключи Stripe в `.env.local`
+- [x] Заполнить реальные ключи Twilio в `.env.local`
+- [x] Заполнить реальный ключ Google Maps в `.env.local`
+- [x] Добавить реальные координаты ресторана (RESTAURANT_LAT, RESTAURANT_LNG)
 - [x] Запустить миграции в Supabase SQL Editor (001, 002, 003)
 - [x] Создать бакет `menu-photos` в Supabase Storage (публичный)
 - [x] Включить Phone Auth в Supabase + подключить Twilio
