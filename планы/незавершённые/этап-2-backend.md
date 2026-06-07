@@ -70,8 +70,8 @@
 - [x] Проверка роли `admin` в каждом API-маршруте
 - [x] Supabase RLS на всех таблицах
 - [x] Stripe webhook signature verification
-- [ ] Rate limiting через Next.js middleware
-- [ ] CORS настроен на домен ресторана
+- [x] Rate limiting через Next.js middleware
+- [x] CORS настроен на домен ресторана
 
 ### 7. Деплой и запуск
 - [ ] Добавить переменные окружения в Vercel Production
