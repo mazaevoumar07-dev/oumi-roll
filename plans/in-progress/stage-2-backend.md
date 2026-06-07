@@ -25,7 +25,7 @@
 - [ ] Добавить реальные координаты ресторана (RESTAURANT_LAT, RESTAURANT_LNG)
 - [x] Запустить миграции в Supabase SQL Editor (001, 002, 003)
 - [x] Создать бакет `menu-photos` в Supabase Storage (публичный)
-- [ ] Включить Phone Auth в Supabase + подключить Twilio
+- [x] Включить Phone Auth в Supabase + подключить Twilio
 - [ ] Заполнить меню через панель администратора
 - [x] Создать аккаунт администратора через Supabase Dashboard
 
