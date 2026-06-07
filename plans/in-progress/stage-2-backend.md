@@ -1,7 +1,7 @@
 # Этап 2 — Backend
 
 **Статус:** В процессе  
-**Предыдущий этап:** [Написание спецификаций](../завершённые/спецификации.md)
+**Предыдущий этап:** [Написание спецификаций](../completed/specifications.md)
 
 > ⚠️ Стек изменился после первоначального плана: Neon → Supabase, Vercel Blob → Supabase Storage, F-13 GPS удалена.
 
@@ -70,8 +70,8 @@
 - [x] Проверка роли `admin` в каждом API-маршруте
 - [x] Supabase RLS на всех таблицах
 - [x] Stripe webhook signature verification
-- [ ] Rate limiting через Next.js middleware
-- [ ] CORS настроен на домен ресторана
+- [x] Rate limiting через Next.js middleware
+- [x] CORS настроен на домен ресторана
 
 ### 7. Деплой и запуск
 - [ ] Добавить переменные окружения в Vercel Production
