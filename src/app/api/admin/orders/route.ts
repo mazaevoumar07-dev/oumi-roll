@@ -21,7 +21,9 @@ export async function GET() {
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
-  // Все заказы, новые вверху
+  // Показывать только заказы старше 3 минут — клиент ещё может отменить в это время
+  const cancelWindowCutoff = new Date(Date.now() - 3 * 60 * 1000).toISOString()
+
   const { data: orders, error } = await admin
     .from('orders')
     .select(`
@@ -32,6 +34,7 @@ export async function GET() {
         id, name, price, quantity, is_gift
       )
     `)
+    .lte('created_at', cancelWindowCutoff)
     .order('created_at', { ascending: false })
 
   if (error) {
