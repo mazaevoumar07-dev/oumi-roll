@@ -7,6 +7,14 @@ import { useCart } from "@/context/CartContext";
 import { useAuth } from "@/context/AuthContext";
 import { useMenu, BONUS_MIN_QTY } from "@/context/MenuContext";
 
+type Slot = { label: string; value: string | null };
+type RestaurantStatus = {
+  open: boolean;
+  paused: boolean;
+  nextOpenAt: string | null;
+  slots: Slot[];
+};
+
 /* ===== ТИПЫ ===== */
 
 interface FormData {
@@ -71,6 +79,10 @@ export default function CommandePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Статус ресторана и слоты времени
+  const [restaurantStatus, setRestaurantStatus] = useState<RestaurantStatus | null>(null);
+  const [deliveryTime, setDeliveryTime] = useState<string | null>(null);
+
   // Предзаполнение из профиля авторизованного пользователя
   useEffect(() => {
     if (!user) return;
@@ -85,6 +97,23 @@ export default function CommandePage() {
     }, 0);
     return () => clearTimeout(fill);
   }, [user]);
+
+  // Загрузить статус ресторана при монтировании
+  useEffect(() => {
+    fetch("/api/status")
+      .then(r => r.json())
+      .then((data: RestaurantStatus) => {
+        setRestaurantStatus(data);
+        // По умолчанию выбрать первый доступный слот
+        if (data.slots.length > 0) {
+          setDeliveryTime(data.slots[0].value);
+        }
+      })
+      .catch(() => {
+        // При ошибке — не блокируем пользователя, считаем что открыто
+        setRestaurantStatus({ open: true, paused: false, nextOpenAt: null, slots: [] });
+      });
+  }, []);
 
   // Бонус — применяется если активен и заказано >= 2 порций
   const totalQty = items.reduce((s, i) => s + i.qty, 0);
@@ -176,6 +205,9 @@ export default function CommandePage() {
       return;
     }
 
+    // Не давать отправить форму если ресторан на паузе
+    if (restaurantStatus?.paused) return;
+
     setSubmitting(true);
 
     try {
@@ -192,6 +224,7 @@ export default function CommandePage() {
           delivery_cost: effectiveDeliveryCost,
           items: items.map(i => ({ menu_item_id: i.id, quantity: i.qty })),
           comment: form.commentaire || undefined,
+          delivery_time: deliveryTime,
         }),
       });
 
@@ -363,6 +396,23 @@ export default function CommandePage() {
               </div>
             </FormSection>
 
+            {/* Время доставки */}
+            <FormSection title="Heure de livraison">
+              {!restaurantStatus?.open && !restaurantStatus?.paused && (
+                <div className="px-3.5 py-3 bg-[#C8A96E]/8 border border-[#C8A96E]/25 rounded-[4px]">
+                  <p className="text-[12.5px] text-[#C8A96E]/80 font-[family-name:var(--font-dm-sans)] leading-[1.6]">
+                    Nous sommes actuellement fermés. Vous pouvez passer une commande pour notre prochaine ouverture.
+                  </p>
+                </div>
+              )}
+              <SlotSelect
+                slots={restaurantStatus?.slots ?? []}
+                value={deliveryTime}
+                onChange={setDeliveryTime}
+                loading={!restaurantStatus}
+              />
+            </FormSection>
+
             {/* Комментарий к заказу */}
             <FormSection title="Commentaire">
               <TextareaField
@@ -385,7 +435,7 @@ export default function CommandePage() {
 
             {/* Кнопка только для мобильных */}
             <div className="lg:hidden">
-              <SubmitBtn submitting={submitting} />
+              {restaurantStatus?.paused ? <PausedBanner /> : <SubmitBtn submitting={submitting} />}
             </div>
           </form>
 
@@ -444,7 +494,7 @@ export default function CommandePage() {
 
               {/* Кнопка для десктопа */}
               <div className="px-5 pb-5 hidden lg:block">
-                <SubmitBtn submitting={submitting} />
+                {restaurantStatus?.paused ? <PausedBanner /> : <SubmitBtn submitting={submitting} />}
               </div>
             </div>
           </aside>
@@ -604,6 +654,42 @@ function SubmitBtn({ submitting }: { submitting: boolean }) {
         </>
       )}
     </button>
+  );
+}
+
+function SlotSelect({ slots, value, onChange, loading }: {
+  slots: Slot[];
+  value: string | null;
+  onChange: (v: string | null) => void;
+  loading: boolean;
+}) {
+  const ASAP = "__asap__";
+  return (
+    <select
+      value={value === null ? ASAP : (value ?? ASAP)}
+      onChange={e => onChange(e.target.value === ASAP ? null : e.target.value)}
+      disabled={loading || slots.length === 0}
+      className="w-full h-11 px-4 bg-[#111] border border-[#2A2A2A] rounded-[4px] text-[13.5px] text-[#F0EAD6] outline-none transition-colors duration-200 font-[family-name:var(--font-dm-sans)] focus:border-[#C8A96E] disabled:opacity-50 disabled:cursor-not-allowed appearance-none"
+    >
+      {loading && <option value={ASAP}>Chargement…</option>}
+      {!loading && slots.length === 0 && <option value={ASAP}>Aucun créneau disponible</option>}
+      {slots.map((slot, i) => (
+        <option key={i} value={slot.value === null ? ASAP : slot.value}>
+          {slot.label}
+        </option>
+      ))}
+    </select>
+  );
+}
+
+function PausedBanner() {
+  return (
+    <div className="flex items-center justify-center px-4 py-4 bg-[#1A1A1A] border border-[#2A2A2A] rounded-[4px]">
+      <p className="text-[12.5px] text-[#8A8A8A] text-center font-[family-name:var(--font-dm-sans)] leading-[1.6]">
+        Nous ne prenons pas de nouvelles commandes pour le moment.<br />
+        Veuillez réessayer dans quelques minutes.
+      </p>
+    </div>
   );
 }
 

@@ -1,8 +1,20 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import twilio from 'twilio'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+
+const SMS_CANCEL_TEXT =
+  "Votre commande a été annulée car un article n'est plus disponible. " +
+  'Vous serez remboursé sous 5 à 10 jours ouvrés. ' +
+  "Vous pouvez passer une nouvelle commande sur notre site — l'article indisponible n'apparaîtra plus."
+
+function toE164(phone: string): string {
+  if (phone.startsWith('0')) return '+33' + phone.slice(1)
+  return phone
+}
 
 // Допустимые переходы статусов — нельзя откатить назад или изменить выполненный заказ
 const ALLOWED_STATUSES = ['preparing', 'in_delivery', 'completed', 'cancelled'] as const
@@ -47,7 +59,7 @@ export async function PATCH(
   // Получить текущий заказ
   const { data: order, error: fetchError } = await admin
     .from('orders')
-    .select('id, status, payment_status, stripe_payment_id')
+    .select('id, status, payment_status, stripe_payment_id, phone')
     .eq('id', id)
     .single()
 
@@ -101,6 +113,20 @@ export async function PATCH(
   if (updateError) {
     console.error('[admin/orders] Ошибка обновления статуса:', updateError)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+
+  // SMS клиенту при отмене оплаченного заказа администратором
+  if (newStatus === 'cancelled' && refunded && order.phone) {
+    try {
+      await twilioClient.messages.create({
+        body: SMS_CANCEL_TEXT,
+        from: process.env.TWILIO_PHONE_NUMBER!,
+        to: toE164(order.phone),
+      })
+    } catch (err) {
+      // SMS — некритичный сбой, заказ уже отменён
+      console.error('[admin/orders] SMS annulation failed:', err)
+    }
   }
 
   return NextResponse.json({ updated: true, status: newStatus, refunded })

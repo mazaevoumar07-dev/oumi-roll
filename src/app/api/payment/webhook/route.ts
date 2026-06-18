@@ -103,6 +103,7 @@ export async function POST(request: Request) {
       payment_status: 'paid',
       stripe_payment_id: paymentIntent.id,
       comment: meta.comment || null,
+      delivery_time: meta.delivery_time || null,
     })
     .select('id, order_number')
     .single()

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { rateLimit, getIp } from '@/lib/rate-limit'
+import { isValidDeliveryTime } from '@/lib/working-hours'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
@@ -20,6 +21,7 @@ interface IntentBody {
   delivery_cost: number
   items: CartItem[]
   comment?: string
+  delivery_time?: string | null
 }
 
 type CartSnapshot = {
@@ -60,6 +62,29 @@ export async function POST(request: Request) {
     const userId = user?.id ?? null
 
     const admin = createAdminClient()
+
+    // Проверить, не поставил ли администратор приём заказов на паузу
+    const { data: pauseSetting } = await admin
+      .from('restaurant_settings')
+      .select('value')
+      .eq('key', 'orders_paused')
+      .single()
+
+    if (pauseSetting?.value === 'true') {
+      return NextResponse.json(
+        { error: 'Nous ne prenons pas de nouvelles commandes pour le moment. Veuillez réessayer dans quelques minutes.' },
+        { status: 503 }
+      )
+    }
+
+    // Проверить delivery_time: null = ASAP (только когда ресторан открыт), строка = предзаказ
+    const deliveryTime = body.delivery_time ?? null
+    if (!isValidDeliveryTime(deliveryTime)) {
+      return NextResponse.json(
+        { error: 'Le créneau horaire sélectionné n\'est plus disponible. Veuillez en choisir un autre.' },
+        { status: 400 }
+      )
+    }
 
     // Fetch current prices from DB — never trust client prices
     const menuItemIds = body.items.map(i => i.menu_item_id)
@@ -159,6 +184,7 @@ export async function POST(request: Request) {
         total_amount: String(totalAmount),
         items: JSON.stringify(cartSnapshot),
         comment: body.comment?.trim() ?? '',
+        delivery_time: deliveryTime ?? '',
       },
     })
 
