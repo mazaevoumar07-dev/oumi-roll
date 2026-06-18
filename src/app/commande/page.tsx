@@ -79,6 +79,14 @@ export default function CommandePage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
+  // Предупреждение об изменении цены
+  const [priceUpdate, setPriceUpdate] = useState<{
+    oldTotal: number;
+    newTotal: number;
+    piId: string;
+    clientSecret: string;
+  } | null>(null);
+
   // Статус ресторана и слоты времени
   const [restaurantStatus, setRestaurantStatus] = useState<RestaurantStatus | null>(null);
   const [deliveryTime, setDeliveryTime] = useState<string | null>(null);
@@ -241,22 +249,46 @@ export default function CommandePage() {
         return;
       }
 
-      // Сохраняем данные в sessionStorage — страница оплаты и подтверждения их прочитают
-      sessionStorage.setItem(`pi_${data.payment_intent_id}`, JSON.stringify({
-        clientSecret: data.client_secret,
-        totalAmount: data.total_amount,
-        email: form.email,
-        items: items.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
-        deliveryCost: effectiveDeliveryCost,
-      }));
+      // Если сервер вернул другую сумму — показать предупреждение, не переходить к оплате
+      const serverTotal = data.total_amount ?? 0;
+      if (Math.abs(serverTotal - orderTotal) > 0.01) {
+        setPriceUpdate({
+          oldTotal: orderTotal,
+          newTotal: serverTotal,
+          piId: data.payment_intent_id,
+          clientSecret: data.client_secret,
+        });
+        setSubmitting(false);
+        return;
+      }
 
-      clearCart();
-      closeCart();
-      router.push(`/paiement/${data.payment_intent_id}`);
+      goToPayment(data.payment_intent_id, data.client_secret, data.total_amount);
     } catch {
       setSubmitError("Erreur réseau. Vérifiez votre connexion et réessayez.");
       setSubmitting(false);
     }
+  }
+
+  function handleConfirmPriceUpdate() {
+    if (!priceUpdate) return;
+    goToPayment(priceUpdate.piId, priceUpdate.clientSecret, priceUpdate.newTotal);
+  }
+
+  function handleCancelPriceUpdate() {
+    setPriceUpdate(null);
+  }
+
+  function goToPayment(piId: string, clientSecret: string, totalAmount?: number) {
+    sessionStorage.setItem(`pi_${piId}`, JSON.stringify({
+      clientSecret,
+      totalAmount,
+      email: form.email,
+      items: items.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
+      deliveryCost: effectiveDeliveryCost,
+    }));
+    clearCart();
+    closeCart();
+    router.push(`/paiement/${piId}`);
   }
 
   /* ── Пустая корзина ── */
@@ -423,6 +455,39 @@ export default function CommandePage() {
                 maxLength={300}
               />
             </FormSection>
+
+            {/* Предупреждение об изменении цены */}
+            {priceUpdate && (
+              <div className="flex flex-col gap-3 px-3.5 py-4 bg-[#C8A96E]/8 border border-[#C8A96E]/40 rounded-[4px]">
+                <p className="font-[family-name:var(--font-dm-sans)] text-[12.5px] text-[#F0EAD6] leading-[1.6]">
+                  Le prix de votre commande a été mis à jour.
+                </p>
+                <div className="flex items-center gap-3 font-[family-name:var(--font-dm-sans)]">
+                  <span className="text-[12px] text-[#8A8A8A] line-through">
+                    €{priceUpdate.oldTotal.toFixed(2)}
+                  </span>
+                  <span className="text-[13px] font-semibold text-[#C8A96E]">
+                    →  €{priceUpdate.newTotal.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex gap-2.5">
+                  <button
+                    type="button"
+                    onClick={handleConfirmPriceUpdate}
+                    className="flex-1 py-[10px] bg-[#C8A96E] text-[#0D0D0D] text-[12px] tracking-[0.08em] uppercase font-medium rounded-[4px] hover:bg-[#E2C07A] transition-colors font-[family-name:var(--font-dm-sans)]"
+                  >
+                    Confirmer €{priceUpdate.newTotal.toFixed(2)}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCancelPriceUpdate}
+                    className="px-4 py-[10px] border border-[#2A2A2A] text-[#8A8A8A] text-[12px] tracking-[0.08em] uppercase rounded-[4px] hover:border-[#C8A96E]/40 hover:text-[#C8A96E]/70 transition-colors font-[family-name:var(--font-dm-sans)]"
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Ошибка отправки */}
             {submitError && (
