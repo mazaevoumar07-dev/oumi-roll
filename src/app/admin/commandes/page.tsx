@@ -99,6 +99,8 @@ export default function AdminCommandesPage() {
   const [lastRefresh, setLastRefresh]   = useState<Date>(new Date());
   const [loadError, setLoadError]       = useState<string | null>(null);
   const [updating, setUpdating]         = useState<Set<string>>(new Set());
+  const [paused, setPaused]             = useState<boolean>(false);
+  const [pauseLoading, setPauseLoading] = useState<boolean>(false);
   const knownIdsRef                     = useRef<Set<string>>(new Set());
   const timerRef                        = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -136,6 +138,24 @@ export default function AdminCommandesPage() {
     timerRef.current = setInterval(() => load(true), REFRESH_INTERVAL);
     return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [load]);
+
+  useEffect(() => {
+    fetch("/api/status")
+      .then(r => r.json())
+      .then((data: { paused: boolean }) => setPaused(data.paused))
+      .catch(() => {});
+  }, []);
+
+  async function handleTogglePause() {
+    setPauseLoading(true);
+    try {
+      const res = await fetch("/api/admin/settings/pause", { method: "PATCH" });
+      const data = await res.json() as { paused: boolean };
+      setPaused(data.paused);
+    } finally {
+      setPauseLoading(false);
+    }
+  }
 
   async function handleStatusChange(id: string, status: Order["status"]) {
     setUpdating(prev => new Set([...prev, id]));
@@ -176,7 +196,7 @@ export default function AdminCommandesPage() {
               Commandes
             </h1>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 flex-wrap">
             <span className="text-[11.5px] text-[#8A8A8A]/50 font-[family-name:var(--font-dm-sans)]">
               Actualisé à {fmtTime(lastRefresh.toISOString())}
             </span>
@@ -186,6 +206,19 @@ export default function AdminCommandesPage() {
             >
               <RefreshIcon />
               Actualiser
+            </button>
+            <button
+              onClick={handleTogglePause}
+              disabled={pauseLoading}
+              className={[
+                "flex items-center gap-2 px-3.5 py-2 border rounded-[4px] text-[11.5px] transition-colors font-[family-name:var(--font-dm-sans)] font-medium disabled:opacity-50",
+                paused
+                  ? "bg-[#C0392B]/10 border-[#C0392B]/50 text-[#C0392B] hover:bg-[#C0392B]/15"
+                  : "bg-[#27AE60]/10 border-[#27AE60]/40 text-[#27AE60] hover:bg-[#27AE60]/15",
+              ].join(" ")}
+            >
+              <span className={["w-2 h-2 rounded-full", paused ? "bg-[#C0392B]" : "bg-[#27AE60]"].join(" ")} />
+              {paused ? "Commandes en pause" : "Commandes actives"}
             </button>
           </div>
         </div>
