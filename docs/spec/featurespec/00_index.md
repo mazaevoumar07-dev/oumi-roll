@@ -21,6 +21,7 @@
 | [F-11_admin_orders.md](F-11_admin_orders.md) | Панель администратора — заказы | Backend |
 | [F-12_bonuses.md](F-12_bonuses.md) | Система бонусов | Backend |
 | [F-13_gps.md](F-13_gps.md) | GPS-отслеживание курьера | ~~Удалено~~ |
+| [F-14_working_hours.md](F-14_working_hours.md) | Часы работы, предзаказ, пауза заказов | Backend |
 
 ---
 
