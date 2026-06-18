@@ -1,10 +1,22 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
+import twilio from 'twilio'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
 
-const CANCEL_WINDOW_MS = 3 * 60 * 1000 // 3 minutes
+const CANCEL_WINDOW_MS = 3 * 60 * 1000
+
+const SMS_CANCEL_TEXT =
+  "Votre commande a été annulée car un article n'est plus disponible. " +
+  'Vous serez remboursé sous 5 à 10 jours ouvrés. ' +
+  "Vous pouvez passer une nouvelle commande sur notre site — l'article indisponible n'apparaîtra plus."
+
+function toE164(phone: string): string {
+  if (phone.startsWith('0')) return '+33' + phone.slice(1)
+  return phone
+}
 
 export async function POST(
   _request: Request,
@@ -12,7 +24,6 @@ export async function POST(
 ) {
   const { id } = await params
 
-  // Require authentication
   const session = await createClient()
   const { data: { user } } = await session.auth.getUser()
   if (!user) {
@@ -23,7 +34,7 @@ export async function POST(
 
   const { data: order, error } = await admin
     .from('orders')
-    .select('id, user_id, status, payment_status, stripe_payment_id, created_at')
+    .select('id, user_id, status, payment_status, stripe_payment_id, created_at, phone')
     .eq('id', id)
     .single()
 
@@ -35,7 +46,6 @@ export async function POST(
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
   }
 
-  // Check access: owner or admin
   const { data: profile } = await admin
     .from('users')
     .select('role')
@@ -49,7 +59,6 @@ export async function POST(
     return NextResponse.json({ error: 'Accès refusé' }, { status: 403 })
   }
 
-  // Can't cancel an already cancelled or completed order
   if (order.status === 'cancelled') {
     return NextResponse.json({ error: 'Cette commande est déjà annulée' }, { status: 400 })
   }
@@ -57,7 +66,6 @@ export async function POST(
     return NextResponse.json({ error: 'Une commande livrée ne peut pas être annulée' }, { status: 400 })
   }
 
-  // Clients can only cancel within the 3-minute window; admins have no time limit
   if (!isAdmin) {
     const elapsed = Date.now() - new Date(order.created_at).getTime()
     if (elapsed > CANCEL_WINDOW_MS) {
@@ -68,7 +76,6 @@ export async function POST(
     }
   }
 
-  // Initiate Stripe refund for paid orders
   if (order.payment_status === 'paid' && order.stripe_payment_id) {
     try {
       await stripe.refunds.create({ payment_intent: order.stripe_payment_id })
@@ -78,7 +85,6 @@ export async function POST(
     }
   }
 
-  // Mark order as cancelled
   const { error: updateError } = await admin
     .from('orders')
     .update({ status: 'cancelled', cancelled_at: new Date().toISOString() })
@@ -87,6 +93,20 @@ export async function POST(
   if (updateError) {
     console.error('[cancel] Failed to update order:', updateError)
     return NextResponse.json({ error: 'Erreur serveur' }, { status: 500 })
+  }
+
+  // SMS клиенту только при отмене администратором оплаченного заказа
+  if (isAdmin && order.payment_status === 'paid' && order.phone) {
+    try {
+      await twilioClient.messages.create({
+        body: SMS_CANCEL_TEXT,
+        from: process.env.TWILIO_PHONE_NUMBER!,
+        to: toE164(order.phone),
+      })
+    } catch (err) {
+      // SMS — некритичный сбой: заказ уже отменён и возврат инициирован
+      console.error('[cancel] SMS notification failed:', err)
+    }
   }
 
   const refunded = order.payment_status === 'paid'
