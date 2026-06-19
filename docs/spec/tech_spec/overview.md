@@ -73,7 +73,6 @@ oumi-roll/
 │   │       ├── delivery/calculate/route.ts → POST /api/delivery/calculate
 │   │       ├── payment/create-intent/route.ts → POST /api/payment/intent
 │   │       ├── payment/webhook/route.ts    → POST /api/payment/webhook
-│   │       ├── courier/location/route.ts   → POST /api/courier/location
 │   │       └── admin/
 │   │           ├── menu/route.ts       → GET, POST /api/admin/menu
 │   │           ├── menu/[id]/route.ts  → PATCH /api/admin/menu/:id
@@ -219,13 +218,6 @@ oumi-roll/
 | Метод | Путь | Доступ |
 |---|---|---|
 | GET | /api/users/me/orders | Авторизованный |
-
-### GPS-отслеживание
-
-| Метод | Путь | Доступ |
-|---|---|---|
-| POST | /api/courier/location | `?token=<courier_token>` |
-| GET | /api/orders/:id/location | `?token=<tracking_token>` или авторизованный |
 
 ### Панель администратора
 
