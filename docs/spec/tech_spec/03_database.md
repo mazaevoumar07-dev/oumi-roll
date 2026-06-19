@@ -67,18 +67,24 @@
 | last_name | VARCHAR(100) | Фамилия клиента |
 | phone | VARCHAR(20) | Телефон клиента |
 | email | VARCHAR(200) | Email клиента (для Stripe receipt_email — чек об оплате) |
-| delivery_type | TEXT | Способ получения: `'delivery'` или `'pickup'` |
-| address | TEXT | Адрес доставки (NULL если самовывоз) |
-| delivery_cost | NUMERIC(8,2) | Стоимость доставки (0 если самовывоз) |
+| delivery_type | TEXT | Способ получения: `'delivery'`, `'pickup'`, `'in_person'` |
+| address | TEXT | Адрес доставки (NULL если самовывоз или на месте) |
+| delivery_cost | NUMERIC(8,2) | Стоимость доставки (0 если самовывоз или на месте) |
 | total_amount | NUMERIC(8,2) | Итоговая сумма (заказ + доставка) |
+| source | TEXT | Канал заказа: `'online'`, `'phone'`, `'in_person'`; по умолчанию `'online'` |
+| payment_method | TEXT | Способ оплаты: `'stripe'`, `'cash'`, `'card_terminal'`; по умолчанию `'stripe'` |
 | status | TEXT | Статус заказа |
 | payment_status | TEXT | Статус оплаты: `'pending'`, `'paid'`, `'failed'` |
-| stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe (UNIQUE — защита от дублей при повторных webhook) |
-| comment | TEXT | Комментарий клиента к заказу (аллергии, предпочтения, код домофона; NULL если не указан) |
+| stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe; NULL для ручных заказов (UNIQUE — защита от дублей при повторных webhook) |
+| refund_failed | BOOLEAN | true если возврат через Stripe не прошёл; по умолчанию false |
+| comment | TEXT | Комментарий к заказу (аллергии, предпочтения, код домофона; NULL если не указан) |
 | created_at | TIMESTAMP | Время создания заказа |
 | cancelled_at | TIMESTAMP | Время отмены (NULL если не отменён) |
 
 **Статусы заказа:** `new` → `preparing` → `in_delivery` → `completed` / `cancelled`
+
+> Ручные заказы (source = `'phone'` или `'in_person'`) создаются сразу со статусом `preparing`, минуя `new`.
+> Для ручных заказов `stripe_payment_id = NULL`, `payment_method = 'cash'` или `'card_terminal'`.
 
 ---
 
