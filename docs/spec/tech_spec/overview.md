@@ -137,7 +137,7 @@ oumi-roll/
 | first_name | VARCHAR(100) | Имя клиента |
 | last_name | VARCHAR(100) | Фамилия клиента |
 | phone | VARCHAR(20) | Телефон клиента |
-| delivery_type | ENUM('delivery','pickup') | Способ получения |
+| delivery_type | TEXT | Способ получения: `'delivery'`, `'pickup'`, `'in_person'` |
 | address | TEXT | Адрес доставки (NULL если самовывоз) |
 | delivery_cost | NUMERIC(8,2) | Стоимость доставки (0 если самовывоз) |
 | total_amount | NUMERIC(8,2) | Итоговая сумма (заказ + доставка) |

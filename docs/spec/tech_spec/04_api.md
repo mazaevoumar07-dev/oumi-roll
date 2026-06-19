@@ -75,10 +75,10 @@
 {
   "source": "phone" | "in_person",
   "customer_name": "string",
-  "customer_phone": "string (обязателен если delivery_method = delivery)",
+  "customer_phone": "string (обязателен если delivery_type = delivery)",
   "items": [{ "menu_item_id": "uuid", "quantity": 1 }],
-  "delivery_method": "delivery" | "pickup" | "in_person",
-  "address": "string (обязателен если delivery_method = delivery)",
+  "delivery_type": "delivery" | "pickup" | "in_person",
+  "address": "string (обязателен если delivery_type = delivery)",
   "payment_method": "cash" | "card_terminal",
   "notes": "string (необязателен)"
 }
@@ -88,7 +88,7 @@
 - Проверяет, что все `menu_item_id` существуют и `is_available = true`
 - Рассчитывает сумму на сервере по текущим ценам из БД — не доверять клиенту
 - Создаёт заказ со статусом `preparing` (этап «Новый» пропускается)
-- Stripe не вызывается; поле `payment_intent_id` остаётся `null`
+- Stripe не вызывается; поле `stripe_payment_id` остаётся `null`
 - 3-минутное окно отмены не применяется
 - SMS клиенту не отправляется
 
