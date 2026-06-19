@@ -13,12 +13,13 @@
 |---|---|---|
 | Frontend | Next.js 15 + TypeScript (готово) | App Router, SSR, статичные страницы |
 | Backend | Next.js API Routes (App Router) | Сервер и API внутри того же проекта |
-| База данных | PostgreSQL через Neon | Хранение заказов, меню, пользователей |
+| База данных | PostgreSQL через Supabase | Хранение заказов, меню, пользователей |
+| Auth | Supabase Auth | Сессии, JWT, OTP — без ручного bcrypt/JWT |
 | Оплата | Stripe | Оплата картой, Apple Pay, Google Pay |
-| SMS | Twilio | Уведомления клиентам об акциях |
+| SMS | Twilio | OTP при регистрации + промо-рассылки |
 | Геокодинг | Google Maps Geocoding API | Расчёт расстояния для доставки |
 | Хостинг | Vercel | Frontend + Backend (serverless functions) |
-| Хранение фото | Vercel Blob | Фотографии позиций меню |
+| Хранение фото | Supabase Storage | Фотографии позиций меню |
 | Мультиязычность | i18next | Французский (по умолчанию), английский, русский |
 | Карта (клиент) | Google Maps JavaScript API | Карта с курьером на странице отслеживания |
 | Переменные окружения | Vercel Environment Variables | API-ключи, секреты |
@@ -30,14 +31,16 @@
 ```
 Клиент (браузер)
     │
-    ├── GET /menu, /orders/:id        → Vercel Serverless Functions (Node.js + Express)
-    ├── POST /orders, /auth/login     →        │
-    └── POST /payment/intent          →        │
+    ├── GET /menu, /orders/:id        → Vercel Serverless Functions (Next.js API Routes)
+    ├── POST /orders, /payment/intent →        │
+    └── POST /admin/orders            →        │
                                                │
                               ┌────────────────┼────────────────┐
                               │                │                │
-                           Neon DB          Stripe           Twilio
-                        (PostgreSQL)      (Оплата)           (SMS)
+                           Supabase         Stripe           Twilio
+                        (PostgreSQL         (Оплата)          (SMS)
+                         + Auth
+                         + Storage)
                               │
                        Google Maps API
                        (Геокодинг)
@@ -59,17 +62,14 @@ oumi-roll/
 │   │   ├── commande/page.tsx       → Оформление заказа
 │   │   ├── paiement/[id]/page.tsx  → Оплата (Stripe)
 │   │   ├── suivi/[id]/page.tsx     → Отслеживание заказа
-│   │   ├── connexion/page.tsx      → Вход / Регистрация
+│   │   ├── connexion/page.tsx      → Вход / Регистрация (Supabase Auth UI)
 │   │   ├── admin/                  → Панель администратора
 │   │   └── api/                    ← API Routes (backend)
 │   │       ├── menu/route.ts           → GET  /api/menu
 │   │       ├── menu/[id]/route.ts      → GET  /api/menu/:id
-│   │       ├── orders/route.ts         → POST /api/orders
+│   │       ├── orders/route.ts         → POST /api/orders (только Stripe webhook)
 │   │       ├── orders/[id]/route.ts    → GET  /api/orders/:id
 │   │       ├── orders/[id]/cancel/route.ts  → POST /api/orders/:id/cancel
-│   │       ├── auth/register/route.ts  → POST /api/auth/register
-│   │       ├── auth/login/route.ts     → POST /api/auth/login
-│   │       ├── auth/logout/route.ts    → POST /api/auth/logout
 │   │       ├── delivery/calculate/route.ts → POST /api/delivery/calculate
 │   │       ├── payment/create-intent/route.ts → POST /api/payment/intent
 │   │       ├── payment/webhook/route.ts    → POST /api/payment/webhook
@@ -77,16 +77,16 @@ oumi-roll/
 │   │       └── admin/
 │   │           ├── menu/route.ts       → GET, POST /api/admin/menu
 │   │           ├── menu/[id]/route.ts  → PATCH /api/admin/menu/:id
-│   │           ├── orders/route.ts     → GET /api/admin/orders
+│   │           ├── orders/route.ts     → GET, POST /api/admin/orders
 │   │           ├── orders/[id]/route.ts → PATCH /api/admin/orders/:id
 │   │           ├── sms/send/route.ts   → POST /api/admin/sms/send
 │   │           └── promotions/route.ts → GET, PATCH /api/admin/promotions
 │   ├── components/                 ← UI-компоненты
 │   ├── context/                    ← React Context (корзина, auth)
 │   ├── data/                       ← статичные данные (меню)
-│   ├── lib/                        ← общий код (db, helpers)
-│   │   ├── db.ts                   → подключение к Neon (PostgreSQL)
-│   │   ├── auth.ts                 → проверка JWT токенов
+│   ├── lib/                        ← общий код (supabase client, helpers)
+│   │   ├── supabase/server.ts      → createServerClient (@supabase/ssr)
+│   │   ├── supabase/client.ts      → createBrowserClient (@supabase/ssr)
 │   │   └── delivery.ts             → расчёт стоимости доставки
 │   └── types/                      ← TypeScript типы
 │
@@ -101,17 +101,23 @@ oumi-roll/
 
 ## База данных — Схема таблиц
 
-### `users` — зарегистрированные клиенты
+> Авторитетный источник: `03_database.md`. Здесь — краткая сводка.
+
+### `users` — профили клиентов
 
 | Поле | Тип | Описание |
 |---|---|---|
-| id | UUID | Первичный ключ |
+| id | UUID | Совпадает с `auth.users.id` (Supabase) |
 | first_name | VARCHAR(100) | Имя |
 | last_name | VARCHAR(100) | Фамилия |
-| phone | VARCHAR(20) UNIQUE | Номер телефона (логин) |
-| password_hash | TEXT | Хэш пароля (bcrypt) |
+| phone | VARCHAR(20) | Телефон (логин клиента; NULL у администратора) |
+| email | VARCHAR(200) | Email (логин администратора; NULL у клиентов) |
+| role | TEXT | `'client'` или `'admin'`; по умолчанию `'client'` |
 | sms_opt_in | BOOLEAN | Согласие на SMS-рассылку |
+| sms_opt_in_at | TIMESTAMP | Дата согласия (RGPD) |
 | created_at | TIMESTAMP | Дата регистрации |
+
+> Пароль и сессия хранятся в `auth.users` (Supabase) — не в этой таблице.
 
 ### `menu_items` — позиции меню
 
@@ -122,7 +128,7 @@ oumi-roll/
 | description | TEXT | Описание |
 | price | NUMERIC(8,2) | Текущая цена (€) |
 | original_price | NUMERIC(8,2) | Старая цена (если есть скидка) |
-| photo_url | TEXT | Ссылка на фото |
+| photo_url | TEXT | Ссылка на фото (Supabase Storage) |
 | is_available | BOOLEAN | Доступен для заказа |
 | is_visible | BOOLEAN | Виден в меню (не удалён) |
 | created_at | TIMESTAMP | Дата добавления |
@@ -137,41 +143,24 @@ oumi-roll/
 | first_name | VARCHAR(100) | Имя клиента |
 | last_name | VARCHAR(100) | Фамилия клиента |
 | phone | VARCHAR(20) | Телефон клиента |
-| delivery_type | TEXT | Способ получения: `'delivery'`, `'pickup'`, `'in_person'` |
-| address | TEXT | Адрес доставки (NULL если самовывоз) |
-| delivery_cost | NUMERIC(8,2) | Стоимость доставки (0 если самовывоз) |
-| total_amount | NUMERIC(8,2) | Итоговая сумма (заказ + доставка) |
-| status | ENUM | Статус (см. ниже) |
-| payment_status | ENUM('pending','paid','failed') | Статус оплаты |
-| stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe (UNIQUE — защита от дублей при повторных webhook) |
-| tracking_token | UUID | Токен для доступа клиента к статусу заказа без авторизации |
-| courier_token | UUID | Токен для аутентификации курьера при отправке GPS-координат |
-| created_at | TIMESTAMP | Время создания заказа |
+| email | VARCHAR(200) | Email (для Stripe receipt_email) |
+| delivery_type | TEXT | `'delivery'`, `'pickup'`, `'in_person'` |
+| address | TEXT | Адрес доставки (NULL если самовывоз или на месте) |
+| delivery_cost | NUMERIC(8,2) | Стоимость доставки |
+| total_amount | NUMERIC(8,2) | Итоговая сумма |
+| source | TEXT | Канал заказа: `'online'`, `'phone'`, `'in_person'`; default `'online'` |
+| payment_method | TEXT | `'stripe'`, `'cash'`, `'card_terminal'`; default `'stripe'` |
+| status | TEXT | Статус заказа |
+| payment_status | TEXT | `'pending'`, `'paid'`, `'failed'` |
+| stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe; NULL для ручных заказов |
+| refund_failed | BOOLEAN | true если возврат Stripe не прошёл; default false |
+| comment | TEXT | Комментарий к заказу |
+| created_at | TIMESTAMP | Время создания |
 | cancelled_at | TIMESTAMP | Время отмены (NULL если не отменён) |
 
-**Статусы заказа:** `new` → `preparing` → `in_delivery` → `completed` / `cancelled`
+**Статусы:** `new` → `preparing` → `in_delivery` → `completed` / `cancelled`
 
-### `courier_locations` — GPS-координаты курьера (F-13)
-
-| Поле | Тип | Описание |
-|---|---|---|
-| order_id | UUID (FK) | Ссылка на orders.id |
-| latitude | NUMERIC(10,7) | Широта |
-| longitude | NUMERIC(10,7) | Долгота |
-| updated_at | TIMESTAMP | Время последнего обновления |
-
-> Одна строка на заказ. Координаты перезаписываются каждые 10 секунд пока заказ "В доставке".
-
-### `promotions` — бонусы и акции (F-12)
-
-| Поле | Тип | Описание |
-|---|---|---|
-| id | UUID | Первичный ключ |
-| is_active | BOOLEAN | Включён бонус или нет |
-| gift_item_id | UUID (FK) | Ролл-подарок (ссылка на menu_items.id) |
-| updated_at | TIMESTAMP | Когда администратор последний раз менял настройку |
-
-> Таблица содержит одну строку — настройки текущего бонуса. Администратор меняет `is_active` и `gift_item_id` через панель.
+> Ручные заказы (source = `'phone'` / `'in_person'`) создаются сразу в статусе `preparing`.
 
 ### `order_items` — состав заказа
 
@@ -183,212 +172,124 @@ oumi-roll/
 | name | VARCHAR(200) | Название (копируется на момент заказа) |
 | price | NUMERIC(8,2) | Цена (копируется на момент заказа; 0.00 если подарок) |
 | quantity | INTEGER | Количество |
-| is_gift | BOOLEAN | true если позиция добавлена как подарок по бонусу (F-12) |
+| is_gift | BOOLEAN | true если позиция добавлена как подарок по бонусу |
 
-> Цена и название копируются при создании заказа — чтобы история не менялась если владелец изменит меню.  
-> Подарочный ролл пишется отдельной строкой: `price = 0.00`, `quantity = 1`, `is_gift = true`. Это позволяет видеть в истории заказов что именно было подарком и не путать с оплаченными позициями.
-
-### `password_reset_tokens` — коды восстановления пароля (F-06)
+### `promotions` — бонусы и акции
 
 | Поле | Тип | Описание |
 |---|---|---|
 | id | UUID | Первичный ключ |
-| user_id | UUID (FK) | Ссылка на users.id |
-| code_hash | TEXT | bcrypt-хэш 6-значного кода (не храним код в открытом виде) |
-| expires_at | TIMESTAMP | Когда код перестаёт действовать (создание + 10 минут) |
-| used_at | TIMESTAMP | Когда код был использован (NULL если ещё не использован) |
-| created_at | TIMESTAMP | Время создания |
+| is_active | BOOLEAN | Включён бонус или нет |
+| gift_item_id | UUID (FK) | Ролл-подарок (ссылка на menu_items.id) |
+| updated_at | TIMESTAMP | Последнее изменение |
 
-> Один активный код на пользователя. При повторном запросе старый код инвалидируется (устанавливается `used_at = now()`), создаётся новый.
-
-### `login_attempts` — попытки входа для блокировки (F-06)
-
-| Поле | Тип | Описание |
-|---|---|---|
-| id | UUID | Первичный ключ |
-| phone | VARCHAR(20) | Телефон по которому пытались войти |
-| attempted_at | TIMESTAMP | Время попытки |
-| success | BOOLEAN | Успешный вход или нет |
-
-> Блокировка: если за последние 15 минут по данному `phone` зафиксировано ≥ 5 записей с `success = false` — вход запрещается до истечения 15 минут с момента первой неудачной попытки из серии.
+> Таблица содержит одну строку — настройки текущего бонуса.
 
 ---
 
 ## API — Эндпоинты
 
+> Авторитетный источник: `04_api.md`. Здесь — краткая сводка.
+
 ### Меню
 
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| GET | /api/menu | Список всех доступных позиций | Публичный |
-| GET | /api/menu/:id | Одна позиция меню | Публичный |
+| Метод | Путь | Доступ |
+|---|---|---|
+| GET | /api/menu | Публичный |
+| GET | /api/menu/:id | Публичный |
 
 ### Заказы
 
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| POST | /api/orders | Создать заказ (только через Stripe webhook — см. ниже) | Только Stripe |
-| GET | /api/orders/:id | Статус заказа по ID | `?token=<tracking_token>` или авторизованный клиент |
-| POST | /api/orders/:id/cancel | Отменить заказ (3 минуты) | `?token=<tracking_token>` или авторизованный клиент |
+| Метод | Путь | Доступ |
+|---|---|---|
+| POST | /api/orders | Только Stripe webhook |
+| GET | /api/orders/:id | Клиент (владелец) или Admin |
+| POST | /api/orders/:id/cancel | Клиент (владелец) или Admin |
 
-### Аутентификация
+### Доставка и оплата
 
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| POST | /api/auth/register | Регистрация клиента | Публичный |
-| POST | /api/auth/login | Вход в аккаунт | Публичный |
-| POST | /api/auth/logout | Выход | Авторизованный |
-
-### Доставка
-
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| POST | /api/delivery/calculate | Расчёт стоимости по адресу | Публичный |
-
-### Оплата
-
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| POST | /api/payment/intent | Создать платёжный intent (Stripe) | Публичный |
-| POST | /api/payment/webhook | Webhook от Stripe (подтверждение оплаты) | Только Stripe |
+| Метод | Путь | Доступ |
+|---|---|---|
+| POST | /api/delivery/calculate | Публичный |
+| POST | /api/payment/intent | Публичный |
+| POST | /api/payment/webhook | Только Stripe |
 
 ### Профиль клиента
 
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| GET | /api/users/me/orders | История заказов клиента | Авторизованный |
+| Метод | Путь | Доступ |
+|---|---|---|
+| GET | /api/users/me/orders | Авторизованный |
 
-### Восстановление пароля
+### GPS-отслеживание
 
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| POST | /api/auth/forgot-password | Отправить SMS с кодом на номер телефона | Публичный |
-| POST | /api/auth/reset-password | Проверить код и установить новый пароль | Публичный |
-
-### GPS-отслеживание (F-13)
-
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| POST | /api/courier/location | Курьер отправляет свои GPS-координаты | `?token=<courier_token>` |
-| GET | /api/orders/:id/location | Клиент получает текущие координаты курьера | `?token=<tracking_token>` или авторизованный клиент |
+| Метод | Путь | Доступ |
+|---|---|---|
+| POST | /api/courier/location | `?token=<courier_token>` |
+| GET | /api/orders/:id/location | `?token=<tracking_token>` или авторизованный |
 
 ### Панель администратора
 
-| Метод | Путь | Описание | Доступ |
-|---|---|---|---|
-| POST | /api/admin/login | Вход в панель администратора | Публичный |
-| GET | /api/admin/orders | Все заказы (новые вверху) | Только админ |
-| PATCH | /api/admin/orders/:id | Сменить статус заказа | Только админ |
-| GET | /api/admin/menu | Все позиции (включая скрытые) | Только админ |
-| POST | /api/admin/menu | Добавить позицию | Только админ |
-| PATCH | /api/admin/menu/:id | Изменить позицию | Только админ |
-| POST | /api/admin/sms/send | Разослать SMS всем клиентам | Только админ |
-| GET | /api/admin/promotions | Текущие настройки бонусов | Только админ |
-| PATCH | /api/admin/promotions | Включить/выключить бонус, выбрать подарок | Только админ |
+| Метод | Путь | Доступ |
+|---|---|---|
+| GET | /api/admin/orders | Только админ |
+| POST | /api/admin/orders | Только админ (ручной ввод: телефон / на месте) |
+| PATCH | /api/admin/orders/:id | Только админ |
+| GET | /api/admin/menu | Только админ |
+| POST | /api/admin/menu | Только админ |
+| PATCH | /api/admin/menu/:id | Только админ |
+| POST | /api/admin/sms/send | Только админ |
+| GET | /api/admin/promotions | Только админ |
+| PATCH | /api/admin/promotions | Только админ |
+
+> Auth (вход, выход, сброс пароля) — через Supabase Auth SDK на клиенте, без отдельных API-маршрутов.
 
 ---
 
 ## Аутентификация
 
-### Клиент
-- JWT токен, хранится в `httpOnly cookie` (недоступен из JavaScript — защита от XSS)
-- Логин: номер телефона + пароль
-- Токен истекает через 7 дней
-- Cookie: `Secure`, `SameSite=Strict`
+> Авторитетный источник: `05_auth.md`.
 
-### Администратор
-- Заходит на страницу `/admin/login` — отдельная страница, скрытая от обычных клиентов
-- Вводит логин (email или имя) и пароль
-- Получает JWT с ролью `admin`, хранится в `httpOnly cookie`
-- Cookie: `Secure`, `SameSite=Strict`
-- Этот токен даёт доступ ко всем `/api/admin/*` эндпоинтам
-- Аккаунт администратора создаётся один раз разработчиком (вручную в базе данных) — регистрации нет
-- Только один администратор — владелец ресторана
-
-### Общее
-- Пароли хэшируются через **bcrypt** (salt rounds: 12)
-- После 5 неверных попыток входа — блокировка на 15 минут (хранится в БД)
-
----
-
-## Расчёт стоимости доставки (F-04)
-
-1. Клиент вводит адрес
-2. Backend отправляет адрес в **Google Maps Geocoding API** → получает координаты
-3. Backend считает расстояние от ресторана до клиента (по прямой × 1.3 — поправка на дороги)
-4. Применяет тариф:
-
-| Расстояние | Стоимость |
-|---|---|
-| 0 — 3 км | €2.50 |
-| 3.0 — 3.5 км | €3.50 |
-| 3.5 — 4.0 км | €4.50 |
-| 4.0 — 4.5 км | €5.50 |
-| 4.5 — 5.0 км | €6.50 |
-| > 5 км | Недоступно |
-
-- Координаты ресторана: задаются в переменных окружения (`RESTAURANT_LAT`, `RESTAURANT_LNG`)
+- Полностью управляется **Supabase Auth** — никакого ручного JWT/bcrypt
+- Клиент: телефон + пароль, SMS OTP через Twilio
+- Администратор: email + пароль, роль `admin` проверяется через `public.users`
+- JWT хранится в `httpOnly cookie` через `@supabase/ssr`
+- Пакеты: `@supabase/supabase-js`, `@supabase/ssr`
 
 ---
 
 ## Внешние сервисы
 
-### Stripe (оплата)
-- Используется **Stripe Payment Intents API**
-- Заказ создаётся только после подтверждения оплаты (через webhook `payment_intent.succeeded`)
-- Данные карты никогда не проходят через наш сервер — только через Stripe
-- **Idempotency webhook:** перед созданием заказа обработчик выполняет `SELECT id FROM orders WHERE stripe_payment_id = $1`. Если строка уже есть — webhook игнорируется и возвращается `200 OK`. Stripe гарантирует "at-least-once", а не "exactly-once", поэтому один и тот же webhook может прийти несколько раз.
-- **Верификация подписи:** каждый входящий webhook проверяется через `stripe.webhooks.constructEvent()` с `STRIPE_WEBHOOK_SECRET` — запросы без валидной подписи отклоняются с `400`.
-- **Возврат денег при отмене:** если клиент отменяет оплаченный заказ в течение 3 минут, backend вызывает Stripe Refunds API → деньги возвращаются на карту клиента за 5–10 рабочих дней
+> Авторитетный источник: `07_external_services.md`.
 
-### Twilio (SMS)
-- Рассылка через **Twilio Messaging API**
-- Отправка только клиентам с `sms_opt_in = true`
-- Логирование: сколько SMS отправлено, сколько ошибок
-
-### Neon (PostgreSQL)
-- Подключение через `DATABASE_URL` (connection string)
-- Используется библиотека `pg` (node-postgres)
-- Миграции через `node-pg-migrate`
-
-### Vercel Blob (хранение фото)
-- Фотографии роллов загружаются администратором и хранятся в Vercel Blob
-- При загрузке фото через `/api/admin/menu` — файл сохраняется в Blob, в БД пишется только URL
-- Максимальный размер фото: 5 МБ
-- Поддерживаемые форматы: JPG, PNG, WebP
-
-### Google Maps Geocoding API
-- Используется только на backend (API-ключ не виден клиенту)
-- Запрос: адрес → координаты → расстояние
+- **Supabase** — PostgreSQL + Auth + Storage (бакет `menu-photos`)
+- **Stripe** — Payment Intents, webhook `payment_intent.succeeded`, Refunds API
+- **Twilio** — SMS OTP (через Supabase Dashboard) + промо-рассылки
+- **Google Maps Geocoding API** — геокодинг адреса для расчёта стоимости доставки
 
 ---
 
 ## Переменные окружения
 
-```env
-# База данных
-DATABASE_URL=postgresql://...
+> Авторитетный источник: `08_env_vars.md`.
 
-# Аутентификация
-JWT_SECRET=...
+```env
+# Supabase
+NEXT_PUBLIC_SUPABASE_URL=https://xxx.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJ...
+SUPABASE_SERVICE_ROLE_KEY=eyJ...
 
 # Stripe
-STRIPE_SECRET_KEY=...
-STRIPE_WEBHOOK_SECRET=...
+STRIPE_SECRET_KEY=sk_live_...
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
 
 # Twilio
-TWILIO_ACCOUNT_SID=...
+TWILIO_ACCOUNT_SID=AC...
 TWILIO_AUTH_TOKEN=...
-TWILIO_PHONE_NUMBER=...
+TWILIO_PHONE_NUMBER=+33...
 
 # Google Maps
-GOOGLE_MAPS_API_KEY=...
-
-# Vercel Blob (фото роллов)
-BLOB_READ_WRITE_TOKEN=...
-
-# Google Maps (карта для клиента — публичный ключ, только для домена сайта)
-NEXT_PUBLIC_GOOGLE_MAPS_KEY=...
+GOOGLE_MAPS_API_KEY=AIza...
 
 # Ресторан
 RESTAURANT_LAT=47.9948
@@ -399,29 +300,12 @@ RESTAURANT_LNG=0.1985
 
 ---
 
-## Rate Limiting
-
-Ограничения запросов нужны на эндпоинтах которые стоят денег или могут быть использованы для атаки. Реализуется через Next.js middleware на Vercel.
-
-| Эндпоинт | Лимит | Ключ | Причина |
-|---|---|---|---|
-| `POST /api/delivery/calculate` | 10 запросов / минута | IP | Каждый запрос = платный вызов Google Maps Geocoding API |
-| `POST /api/auth/forgot-password` | 3 запроса / 15 минут | номер телефона | Каждый запрос = платная SMS через Twilio; защита от спама |
-| `POST /api/auth/login` | 10 запросов / минута | IP | Защита от перебора паролей (в дополнение к блокировке по БД) |
-| `POST /api/auth/register` | 5 запросов / минута | IP | Защита от массовой регистрации фейковых аккаунтов |
-
-При превышении лимита эндпоинт возвращает `429 Too Many Requests` с заголовком `Retry-After`.
-
----
-
 ## Безопасность
 
-- SQL-запросы только через параметризацию (защита от SQL-инъекций)
-- Все `/api/admin/*` эндпоинты проверяют JWT с ролью `admin`
-- Stripe webhook проверяется через подпись (`stripe-signature` header) и защищён от дублей через `UNIQUE` на `stripe_payment_id`
-- CORS настроен только на домен ресторана
-- Пароли никогда не хранятся в открытом виде
-- JWT токены (клиент и администратор) хранятся исключительно в `httpOnly cookie` — JavaScript на странице не имеет к ним доступа, что исключает кражу через XSS
-- Доступ к данным заказа (`GET /api/orders/:id`) требует `tracking_token` из URL или авторизованную сессию — анонимный доступ к чужим заказам невозможен
-
----
+- Supabase Auth управляет паролями и сессиями — bcrypt и JWT вручную не используются
+- Все `/api/admin/*` проверяют роль через `supabase.auth.getUser()` + `SELECT role FROM public.users`
+- SQL только через `@supabase/supabase-js` (параметризованные запросы — без интерполяции строк)
+- Stripe webhook проверяется через подпись (`stripe.webhooks.constructEvent()`)
+- Защита от дублей webhook: `UNIQUE` на `stripe_payment_id`
+- `NEXT_PUBLIC_*` переменные видны в браузере — секреты туда не писать
+- `SUPABASE_SERVICE_ROLE_KEY` обходит RLS — только на сервере, никогда на клиенте
