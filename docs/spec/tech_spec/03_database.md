@@ -14,6 +14,7 @@
 | `orders` | Заказы |
 | `order_items` | Состав заказа (строки) |
 | `promotions` | Настройки бонусов |
+| `restaurant_settings` | Глобальные настройки ресторана (пауза приёма заказов) |
 
 > `password_reset_tokens` и `login_attempts` не нужны — Supabase Auth управляет этим автоматически.
 
@@ -77,6 +78,7 @@
 | payment_status | TEXT | Статус оплаты: `'pending'`, `'paid'`, `'failed'` |
 | stripe_payment_id | TEXT UNIQUE | ID платежа в Stripe; NULL для ручных заказов (UNIQUE — защита от дублей при повторных webhook) |
 | refund_failed | BOOLEAN | true если возврат через Stripe не прошёл; по умолчанию false |
+| delivery_time | TIMESTAMPTZ | Выбранный клиентом временной слот; NULL означает «как можно скорее» |
 | comment | TEXT | Комментарий к заказу (аллергии, предпочтения, код домофона; NULL если не указан) |
 | created_at | TIMESTAMP | Время создания заказа |
 | cancelled_at | TIMESTAMP | Время отмены (NULL если не отменён) |
@@ -102,6 +104,21 @@
 
 > Цена и название копируются при создании заказа — история не меняется если владелец изменит меню.
 > Подарочный ролл: `price = 0.00`, `quantity = 1`, `is_gift = true`.
+
+---
+
+## `restaurant_settings` — глобальные настройки ресторана
+
+| Поле | Тип | Описание |
+|---|---|---|
+| key | TEXT | Первичный ключ (название настройки) |
+| value | TEXT | Значение настройки |
+
+> Таблица хранит пары ключ–значение. Сейчас одна запись: `key = 'orders_paused'`, `value = 'false'` / `'true'`.
+> Используется для паузы приёма заказов (F-14). При старте системы вставляется начальная запись:
+> ```sql
+> INSERT INTO restaurant_settings (key, value) VALUES ('orders_paused', 'false');
+> ```
 
 ---
 
