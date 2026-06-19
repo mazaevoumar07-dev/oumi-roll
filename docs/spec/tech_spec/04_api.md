@@ -54,6 +54,7 @@
 | Метод | Путь | Описание | Доступ |
 |---|---|---|---|
 | GET | /api/admin/orders | Все заказы (новые вверху) | Только админ |
+| POST | /api/admin/orders | Создать заказ вручную (телефон / на месте) | Только админ |
 | PATCH | /api/admin/orders/:id | Сменить статус заказа | Только админ |
 | GET | /api/admin/menu | Все позиции (включая скрытые) | Только админ |
 | POST | /api/admin/menu | Добавить позицию меню | Только админ |
@@ -61,6 +62,45 @@
 | POST | /api/admin/sms/send | Разослать SMS всем клиентам | Только админ |
 | GET | /api/admin/promotions | Текущие настройки бонусов | Только админ |
 | PATCH | /api/admin/promotions | Изменить бонус / выбрать подарок | Только админ |
+
+---
+
+## POST /api/admin/orders — детали
+
+Создаёт заказ вручную без Stripe. Только для администратора.
+
+**Тело запроса:**
+
+```json
+{
+  "source": "phone" | "in_person",
+  "customer_name": "string",
+  "customer_phone": "string (обязателен если delivery_method = delivery)",
+  "items": [{ "menu_item_id": "uuid", "quantity": 1 }],
+  "delivery_method": "delivery" | "pickup" | "in_person",
+  "address": "string (обязателен если delivery_method = delivery)",
+  "payment_method": "cash" | "card_terminal",
+  "notes": "string (необязателен)"
+}
+```
+
+**Поведение сервера:**
+- Проверяет, что все `menu_item_id` существуют и `is_available = true`
+- Рассчитывает сумму на сервере по текущим ценам из БД — не доверять клиенту
+- Создаёт заказ со статусом `preparing` (этап «Новый» пропускается)
+- Stripe не вызывается; поле `payment_intent_id` остаётся `null`
+- 3-минутное окно отмены не применяется
+- SMS клиенту не отправляется
+
+**Ответ `201`:**
+
+```json
+{ "order_id": "uuid" }
+```
+
+**Ошибки:**
+- `400` — не заполнены обязательные поля или позиция недоступна
+- `403` — не администратор
 
 ---
 
