@@ -16,6 +16,56 @@
 
 ---
 
+## Локальный запуск
+
+```bash
+npm install
+npm run dev   # http://localhost:3000
+```
+
+Нужен файл `.env.local` в корне проекта. Взять у владельца проекта или заполнить самостоятельно:
+
+| Переменная | Где взять |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | [supabase.com](https://supabase.com/dashboard/project/_/settings/api) → Project URL |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → anon key |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase → service_role key |
+| `STRIPE_SECRET_KEY` | [dashboard.stripe.com](https://dashboard.stripe.com/test/apikeys) → Secret key |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe → Publishable key |
+| `STRIPE_WEBHOOK_SECRET` | Запустить `stripe listen --forward-to localhost:3000/api/payment/webhook` |
+| `TWILIO_ACCOUNT_SID` | [console.twilio.com](https://console.twilio.com) |
+| `TWILIO_AUTH_TOKEN` | Twilio console |
+| `TWILIO_PHONE_NUMBER` | Twilio → номер в формате `+1...` |
+| `ADMIN_PHONE` | Номер владельца ресторана в формате E.164 (`+33...`) |
+| `GOOGLE_MAPS_API_KEY` | [console.cloud.google.com](https://console.cloud.google.com) → Geocoding API |
+| `RESTAURANT_LAT` / `RESTAURANT_LNG` | Координаты ресторана |
+| `NEXT_PUBLIC_APP_URL` | `http://localhost:3000` для локальной разработки |
+
+---
+
+## Структура папок
+
+```
+src/
+  app/
+    api/           — API-маршруты (Next.js App Router)
+    admin/         — страницы панели администратора
+    commande/      — страница оформления заказа
+    confirmation/  — страница подтверждения заказа
+    connexion/     — страница авторизации клиента
+    paiement/      — страница оплаты (Stripe)
+    account/       — аккаунт и история заказов клиента
+    courier/       — страница курьера (GPS)
+  components/      — переиспользуемые React-компоненты
+  context/         — React context (корзина, авторизация)
+  data/            — статические данные
+  i18n/            — переводы (FR / EN / RU)
+  lib/supabase/    — клиент Supabase (server и browser)
+  types/           — TypeScript-типы
+```
+
+---
+
 ## Правила написания кода (backend)
 
 - **База данных:** всегда `@supabase/supabase-js` (server client через `@supabase/ssr`), никогда не `pg` напрямую
@@ -80,6 +130,40 @@ git checkout -b <тип>/<название>
 
 ### Исключения (не делать автоматически, а спросить пользователя):
 - Если изменения незавершённые или пользователь явно сказал «не коммитить»
+
+---
+
+## Конвенции коммитов
+
+Формат: `<тип>: <описание на русском>`
+
+| Тип | Когда использовать |
+|---|---|
+| `feat:` | Новая функциональность |
+| `fix:` | Исправление бага |
+| `docs:` | Изменения только в документации или спеках |
+| `chore:` | Служебные изменения: конфиги, зависимости, `.gitignore` |
+| `temp:` | Временный код для отладки — **удалить после** |
+
+Примеры:
+```
+feat: добавить страницу истории заказов
+fix: убрать CRLF из NEXT_PUBLIC_APP_URL
+docs: исправить противоречие в спеке F-05
+chore: обновить зависимости Stripe
+```
+
+---
+
+## Процесс для новых фич
+
+1. **Проверить спек** — открыть `docs/spec/featurespec/` и найти нужную функцию. Если спека нет — написать её первым делом.
+2. **Создать план** — добавить файл в `plans/in-progress/` с шагами реализации.
+3. **Создать ветку** — `feat/название` от актуального `main`.
+4. **Написать код** — читать `known_risks.md` перед любым новым кодом.
+5. **Запустить `/risk-check`** — на каждом новом API-маршруте.
+6. **Обновить `CHANGELOG.md`** — добавить запись вверху файла.
+7. **Стандартный workflow** — commit → push → PR → merge (см. раздел выше).
 
 ---
 
