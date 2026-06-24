@@ -195,6 +195,29 @@ chore: обновить зависимости Stripe
 
 `CHANGELOG.md` ведётся вручную. Обновлять **вместе с коммитом фичи** — не копить в конце.
 
+Помимо корневого `CHANGELOG.md`, в проекте есть папка `changelog/` с детальными файлами по зонам:
+
+| Файл | Зона |
+|---|---|
+| `changelog/frontend.md` | UI, страницы, компоненты, дизайн |
+| `changelog/backend.md` | API-маршруты, база данных |
+| `changelog/admin.md` | Панель администратора |
+| `changelog/payments.md` | Stripe, webhook, flow оплаты |
+| `changelog/notifications.md` | SMS через Twilio |
+| `changelog/security.md` | CORS, rate limiting, RGPD |
+| `changelog/docs.md` | Документация и спецификации |
+
+**Как добавлять запись:** открыть нужный файл зоны, добавить вверху блок с датой и описанием. Если фича затрагивает несколько зон — писать в каждой.
+
+```markdown
+## YYYY-MM-DD
+
+### Добавлено
+- `POST /api/menu/:id/disable` — отключить позицию меню
+```
+
+Корневой `CHANGELOG.md` — краткая сводка. Файлы в `changelog/` — детали по каждой зоне.
+
 ### Формат новой записи
 
 Добавлять **вверху файла** (сразу после заголовка `# CHANGELOG`):
