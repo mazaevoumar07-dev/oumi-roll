@@ -3,8 +3,6 @@
 
 **OUMI ROLL** — сайт онлайн-заказа суши. Ресторан в Ле-Мане, Франция. Клиенты выбирают роллы, оформляют заказ и оплачивают онлайн. Администратор видит заказы в панели и управляет меню.
 
-**Текущий этап:** Backend — подключение API, базы данных и внешних сервисов.
-
 **Стек:** Next.js 15 App Router + TypeScript, PostgreSQL (Supabase), Stripe, Twilio, Google Maps.
 
 **Ключевые спеки (читать перед работой):**
@@ -66,26 +64,30 @@ src/
 
 ---
 
-## Правила написания кода (backend)
+## Как понять проект — читать в таком порядке
 
-- **База данных:** всегда `@supabase/supabase-js` (server client через `@supabase/ssr`), никогда не `pg` напрямую
-- **Auth:** никогда не писать JWT/bcrypt вручную — использовать Supabase Auth SDK
-- **Бонус:** проверять условия бонуса на сервере независимо — не доверять сумме из тела запроса
-- **Supabase RLS:** всегда проверять роль через `supabase.auth.getUser()` на сервере — не доверять клиентскому токену
-- **Stripe:** данные формы (имя, адрес, корзина) хранятся в `metadata` Payment Intent до прихода webhook
-- **SQL:** только параметризованные запросы — никогда не интерполировать строки в SQL
-- **Валидация:** проверять входные данные на каждом эндпоинте — не доверять клиенту
+1. `docs/spec/global_spec.md` — общая концепция, пользователи, этапы
+2. `docs/spec/tech_spec/overview.md` — стек и архитектура
+3. `docs/spec/functional_map/` — сценарии пользователей (как клиент проходит весь путь)
+4. `docs/spec/featurespec/00_index.md` — список всех функций F-01—F-14
+5. `docs/spec/known_risks.md` — известные риски и ограничения
+
+---
 
 ## Что читать перед конкретными задачами
 
-| Задача | Читать сначала |
+| Задача | Где искать |
 |---|---|
-| API-маршрут | `docs/spec/tech_spec/04_api.md` + featurespec нужной функции |
-| БД / миграции | `docs/spec/tech_spec/03_database.md` |
-| Stripe / оплата | `docs/spec/tech_spec/07_external_services.md` |
-| Аутентификация | `docs/spec/tech_spec/05_auth.md` |
+| Новый API-маршрут | `docs/spec/tech_spec/` → файл про API-маршруты + `docs/spec/featurespec/` → нужная функция F-XX |
+| БД / миграции | `docs/spec/tech_spec/` → файл схемы БД |
+| Stripe / оплата | `docs/spec/tech_spec/` → файл внешних сервисов + `docs/spec/featurespec/` → F-08 (оплата), F-05 (отмена) |
+| Аутентификация | `docs/spec/tech_spec/` → файл auth + `docs/spec/featurespec/` → F-06 |
+| Доставка / Google Maps | `docs/spec/tech_spec/` → файл доставки + `docs/spec/featurespec/` → F-04 |
+| SMS / Twilio | `docs/spec/tech_spec/` → файл внешних сервисов + `docs/spec/featurespec/` → F-09 |
+| Панель администратора | `docs/spec/featurespec/` → F-10 (меню), F-11 (заказы), F-12 (бонусы), F-14 (часы работы) |
+| Безопасность / rate limiting | `docs/spec/tech_spec/` → файлы security и rate limiting + `docs/spec/known_risks.md` |
 | Деплой | `docs/spec/deployment_spec.md` |
-| Любой новый код | `docs/spec/known_risks.md` |
+| Любой новый код | `docs/spec/known_risks.md` + `docs/spec/tech_spec/` → файл правил написания кода |
 
 ---
 
@@ -110,26 +112,16 @@ src/
 
 ### Начало задачи — создать ветку
 
-Перед любыми изменениями создай ветку от актуального `main`:
+Перед любыми изменениями запусти `/new-branch` — скилл создаст ветку от актуального `main`.
 
-```bash
-git checkout main && git pull origin main
-git checkout -b <тип>/<название>
-```
+### После завершения изменений
 
-Примеры имён веток: `feat/stripe-integration`, `fix/jwt-cookie`, `docs/tech-spec-security`
+Никогда не коммитить, пушить, создавать PR или мержить автоматически. Каждый шаг — только по явной просьбе пользователя:
 
-### После завершения изменений — всегда автоматически:
-
-1. **Закоммить** — `git add <изменённые файлы>` + `git commit -m "..."`
-2. **Запушить** — `git push origin <текущая ветка>`
-3. **Создать Pull Request** — `gh pr create --base main` с описанием что изменено
-4. **Смержить PR** — `gh pr merge <номер> --merge`  
-   *(GitHub автоматически удаляет feature-ветку после мержа)*
-5. **Вернуться на main** — `git checkout main && git pull origin main`
-
-### Исключения (не делать автоматически, а спросить пользователя):
-- Если изменения незавершённые или пользователь явно сказал «не коммитить»
+- **«Закоммить»** → `git add <файлы>` + `git commit -m "..."`
+- **«Запушить»** → `git push origin <текущая ветка>`
+- **«Создать PR»** → `gh pr create --base main`
+- **«Смержить»** → `gh pr merge <номер> --merge` + `git checkout main && git pull origin main`
 
 ---
 
@@ -186,6 +178,7 @@ chore: обновить зависимости Stripe
 | `/new-api-route` | Создаёт новый API-маршрут по шаблону проекта |
 | `/new-migration` | Создаёт новую миграцию БД |
 | `/mobile-check` | Проверяет мобильную адаптивность |
+| `/new-branch` | Создаёт ветку от актуального `main` перед началом задачи |
 
 **Когда использовать:** запускать `/risk-check` после написания любого нового API-маршрута или изменения логики оплаты.
 
