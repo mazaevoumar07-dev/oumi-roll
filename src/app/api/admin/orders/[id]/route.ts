@@ -3,9 +3,6 @@ import Stripe from 'stripe'
 import twilio from 'twilio'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-
 const SMS_CANCEL_TEXT =
   "Votre commande a été annulée car un article n'est plus disponible. " +
   'Vous serez remboursé sous 5 à 10 jours ouvrés. ' +
@@ -24,6 +21,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+  const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+
   const { id } = await params
 
   // Проверка авторизации и роли администратора

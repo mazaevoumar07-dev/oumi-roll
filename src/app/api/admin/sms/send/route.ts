@@ -22,8 +22,6 @@ export async function GET() {
   return NextResponse.json({ count: count ?? 0 })
 }
 
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-
 // Инструкция отписки обязательна по французскому закону L.34-5
 const STOP_SUFFIX = '\nRépondez STOP pour vous désinscrire.'
 
@@ -35,6 +33,8 @@ function toE164(phone: string): string {
 
 // POST /api/admin/sms/send — разослать SMS всем клиентам с sms_opt_in = true
 export async function POST(request: Request) {
+  const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+
   const session = await createClient()
   const { data: { user } } = await session.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Non autorisé' }, { status: 401 })

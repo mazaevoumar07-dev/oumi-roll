@@ -3,14 +3,11 @@ import Stripe from 'stripe'
 import twilio from 'twilio'
 import { createAdminClient } from '@/lib/supabase/server'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-
 async function notifyAdmin(orderNumber: number, meta: Stripe.Metadata) {
   const adminPhone = process.env.ADMIN_PHONE
   if (!adminPhone) return
 
+  const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   const deliveryLabel = meta.delivery_type === 'delivery' ? 'Livraison' : 'À emporter'
   const total = Number(meta.total_amount).toFixed(2)
   const name = `${meta.first_name} ${meta.last_name.charAt(0)}.`
@@ -38,6 +35,8 @@ type CartItemSnapshot = {
 }
 
 export async function POST(request: Request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
   const signature = request.headers.get('stripe-signature')
   if (!signature) {
     return NextResponse.json({ error: 'Missing signature' }, { status: 400 })
