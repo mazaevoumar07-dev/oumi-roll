@@ -20,7 +20,7 @@ export default function MenuSection() {
   const visible = items.filter(i => i.is_available);
   const filtered =
     activeCategory === "ALL"
-      ? items  // показываем все включая недоступные — с бейджем "Нет в наличии"
+      ? items.filter(i => i.category !== "Sauces" && i.category !== "Boissons")
       : items.filter(i => i.category === activeCategory);
 
   function getCategoryLabel(key: CategoryKey): string {
