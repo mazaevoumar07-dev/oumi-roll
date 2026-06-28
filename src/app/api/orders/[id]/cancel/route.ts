@@ -3,9 +3,6 @@ import Stripe from 'stripe'
 import twilio from 'twilio'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-
 const CANCEL_WINDOW_MS = 3 * 60 * 1000
 
 const SMS_CANCEL_TEXT =
@@ -22,6 +19,9 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+  const twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+
   const { id } = await params
 
   const session = await createClient()

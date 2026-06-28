@@ -4,8 +4,6 @@ import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { rateLimit, getIp } from '@/lib/rate-limit'
 import { isValidDeliveryTime } from '@/lib/working-hours'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
 interface CartItem {
   menu_item_id: string
   quantity: number
@@ -33,6 +31,8 @@ type CartSnapshot = {
 }
 
 export async function POST(request: Request) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
   if (!rateLimit(`intent:${getIp(request)}`, 5, 60_000)) {
     return NextResponse.json({ error: 'Trop de requêtes. Réessayez dans une minute.' }, { status: 429 })
   }
