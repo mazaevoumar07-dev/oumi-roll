@@ -18,7 +18,7 @@ type MenuItem = {
   created_at: string;
 };
 
-const CATEGORIES = ["California", "Makis", "Temaki", "Spécialités"] as const;
+const CATEGORIES = ["California", "Makis", "Temaki", "Spécialités", "Sauces", "Boissons"] as const;
 type Category = (typeof CATEGORIES)[number];
 
 type FormData = {
