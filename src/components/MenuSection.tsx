@@ -5,7 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { useLang } from "@/context/LangContext";
 import { useMenu, type ApiMenuItem } from "@/context/MenuContext";
 
-const CATEGORY_KEYS = ["ALL", "Makis", "California", "Temaki", "Spécialités"] as const;
+const CATEGORY_KEYS = ["ALL", "Makis", "California", "Temaki", "Spécialités", "Sauces", "Boissons"] as const;
 type CategoryKey = typeof CATEGORY_KEYS[number];
 
 /* ===== MAIN SECTION ===== */
