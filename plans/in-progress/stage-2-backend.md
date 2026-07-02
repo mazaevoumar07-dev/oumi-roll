@@ -77,6 +77,7 @@
 - [x] Задеплоить на Vercel — сайт доступен на oumi-roll.vercel.app
 - [x] Исправить API роуты 500 (CRLF в NEXT_PUBLIC_APP_URL ломал Vercel роутер — PR #72)
 - [ ] Пройти чеклист из [deployment_spec.md](../../docs/spec/deployment_spec.md)
+- [x] Stripe Production Webhook — подтверждён постоянный endpoint в Test mode Dashboard на `https://oumi-roll.vercel.app/api/payment/webhook`, событие `payment_intent.succeeded`
 - [ ] Переключить Stripe с Test на Live mode
 - [~] Провести тестовый заказ от начала до конца
   - [x] Меню загружается из БД ✓
