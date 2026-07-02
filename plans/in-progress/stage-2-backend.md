@@ -84,7 +84,7 @@
   - [x] Форма заказа валидируется и отправляется ✓
   - [x] `/api/payment/intent` возвращает 200 с `client_secret` ✓
   - [x] Редирект на `/paiement/pi_...` работает ✓
-  - [ ] Ручная оплата тест-картой (4242 4242 4242 4242) + webhook → confirmation
+  - [x] Ручная оплата тест-картой (4242 4242 4242 4242) + webhook → confirmation ✓ (заказ #1, payment_status: paid)
 
 ---
 
