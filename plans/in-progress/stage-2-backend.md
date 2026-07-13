@@ -33,7 +33,11 @@
 - [x] Миграция 001 — все таблицы: `users`, `menu_items`, `orders`, `order_items`, `promotions`
 - [x] Миграция 002 — исправлен триггер создания профиля (first_name, last_name, sms_opt_in)
 - [x] Миграция 003 — добавлены поля `category` и `pieces` в `menu_items`
-- [x] Запустить все три миграции в Supabase
+- [x] Миграция 004 — добавлен комментарий к заказу (`orders.comment`)
+- [x] Миграция 005 — таблица `restaurant_settings`
+- [x] Миграция 006 — RLS на `restaurant_settings`
+- [x] Миграция 007 — отозван анонимный доступ к RPC `handle_new_user`
+- [x] Запустить все миграции в Supabase (001–007)
 
 ### 3. API — функции для клиента
 - [x] **F-01** `GET /api/menu` — список меню из БД
@@ -79,13 +83,14 @@
 - [ ] Пройти чеклист из [deployment_spec.md](../../docs/spec/deployment_spec.md)
 - [x] Stripe Production Webhook — подтверждён постоянный endpoint в Test mode Dashboard на `https://oumi-roll.vercel.app/api/payment/webhook`, событие `payment_intent.succeeded`
 - [ ] Переключить Stripe с Test на Live mode
-- [~] Провести тестовый заказ от начала до конца
+- [x] Провести тестовый заказ от начала до конца
   - [x] Меню загружается из БД ✓
   - [x] Корзина открывается и работает ✓
   - [x] Форма заказа валидируется и отправляется ✓
   - [x] `/api/payment/intent` возвращает 200 с `client_secret` ✓
   - [x] Редирект на `/paiement/pi_...` работает ✓
   - [x] Ручная оплата тест-картой (4242 4242 4242 4242) + webhook → confirmation ✓ (заказ #1, payment_status: paid)
+- [ ] **Новое (2026-07-13):** Регистрация клиента не работает — Twilio-аккаунт для Phone Auth в Supabase Dashboard на Trial, SMS-код не доходит ни одному непроверенному номеру. См. [known_risks.md](../../docs/spec/known_risks.md). Блокирует запуск — нужен доступ владельца к Twilio Console
 
 ---
 
