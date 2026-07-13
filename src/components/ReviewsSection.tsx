@@ -135,17 +135,17 @@ export default function ReviewsSection() {
                         {r.name.charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <span className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#F0EAD6] font-medium">
+                        <span className="font-[family-name:var(--font-dm-sans)] text-[15px] text-[#F0EAD6] font-medium">
                           {r.name}
                         </span>
-                        <p className="font-[family-name:var(--font-dm-sans)] text-[11px] text-[#3A3A3A] mt-0.5">
+                        <p className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#3A3A3A] mt-0.5">
                           {formatDate(r.date, lang)}
                         </p>
                       </div>
                     </div>
                     <Stars value={r.rating} />
                   </div>
-                  <p className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#8A8A8A] leading-[1.7]">
+                  <p className="font-[family-name:var(--font-dm-sans)] text-[15px] text-[#8A8A8A] leading-[1.7]">
                     {r.comment}
                   </p>
                 </article>
