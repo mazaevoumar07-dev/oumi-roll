@@ -163,7 +163,7 @@ stripe listen --forward-to localhost:3000/api/payment/webhook
 
 ### Внешние сервисы
 - [ ] Stripe — боевые ключи, webhook настроен, аккаунт верифицирован — **сознательно отложено** (решение от 2026-07-05, Stripe остаётся в Test mode; см. `known_risks.md` — KYC ещё не пройден)
-- [~] Twilio — SMS-уведомления о заказах работают (номер подключён, тест пройден), **но** Phone Auth для регистрации клиентов сломан — Twilio-аккаунт в Supabase Dashboard на Trial, см. `known_risks.md`
+- [ ] Twilio — **оба** Twilio-аккаунта на Trial (проверено 2026-07-14): и Phone Auth для регистрации в Supabase Dashboard, и `.env.local` (уведомления администратору, SMS при отмене, промо-рассылка) — ни один SMS не доставляется на неверифицированные номера, см. `known_risks.md`. Сознательно отложено — личный проект
 - [x] Google Maps — `GOOGLE_MAPS_API_KEY` используется только в серверном коде (`api/delivery/calculate`), не передаётся на клиент. Ограничения по IP/referrer в Google Cloud Console — не проверено
 - [x] Supabase Storage — бакет `menu-photos` создан, публичный доступ работает (используется активно, подтверждено)
 
@@ -171,7 +171,7 @@ stripe listen --forward-to localhost:3000/api/payment/webhook
 - [ ] Все переменные окружения заполнены для окружения Production — не проверено напрямую (нет доступа к Vercel env ls в этой сессии)
 - [ ] `NEXT_PUBLIC_APP_URL` указывает на боевой домен — домен ещё не куплен, сайт живёт на `oumi-roll.vercel.app`
 - [ ] Домен подключён и HTTPS работает — кастомный домен не куплен (Шаг 6 не выполнен)
-- [x] Тестовый заказ оформлен — оплата и webhook подтверждены (заказ #1), SMS администратору отправляется автоматически (`notifyAdmin()` в webhook, PR #67)
+- [x] Тестовый заказ оформлен end-to-end — оплата тест-картой + webhook подтверждены (заказ #1, #2), код вызова `notifyAdmin()` срабатывает корректно, но само SMS не доставляется (Twilio Trial, см. `known_risks.md`)
 
 ### Безопасность
 - [x] CORS настроен только на домен ресторана (`next.config.ts`, `Access-Control-Allow-Origin` = `NEXT_PUBLIC_APP_URL`)
