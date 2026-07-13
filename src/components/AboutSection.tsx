@@ -42,10 +42,10 @@ export default function AboutSection() {
                 className="flex flex-col gap-2 p-5 border border-[#1E1E1E] rounded-[4px] bg-[#111111]"
               >
                 <span className="text-[#C8A96E]">{item.icon}</span>
-                <span className="font-[family-name:var(--font-cormorant)] text-[17px] font-medium text-[#F0EAD6]">
+                <span className="font-[family-name:var(--font-cormorant)] text-[20px] font-medium text-[#F0EAD6]">
                   {item.label}
                 </span>
-                <span className="font-[family-name:var(--font-dm-sans)] text-[12px] text-[#8A8A8A] leading-[1.6]">
+                <span className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#8A8A8A] leading-[1.6]">
                   {item.sub}
                 </span>
               </div>
