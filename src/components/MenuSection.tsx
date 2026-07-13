@@ -36,11 +36,11 @@ export default function MenuSection() {
   }
 
   return (
-    <section id="menu" className="bg-[#0D0D0D] py-24 lg:py-32">
+    <section id="menu" className="bg-[#0D0D0D] pt-10 lg:pt-14 pb-24 lg:pb-32 scroll-mt-[72px]">
       <div className="max-w-[1280px] mx-auto px-6 sm:px-8 lg:px-10">
 
         {/* Top separator */}
-        <div className="w-full h-px bg-gradient-to-r from-transparent via-[#2A2A2A] to-transparent mb-16 lg:mb-20" />
+        <div className="w-full h-px bg-gradient-to-r from-transparent via-[#2A2A2A] to-transparent mb-8 lg:mb-10" />
 
         {/* Section header */}
         <div className="mb-12 lg:mb-14">
