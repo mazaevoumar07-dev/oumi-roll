@@ -41,7 +41,7 @@ export default function AboutSection() {
                 key={i}
                 className="flex flex-col gap-2 p-5 border border-[#1E1E1E] rounded-[4px] bg-[#111111]"
               >
-                <span className="text-[22px]">{item.icon}</span>
+                <span className="text-[#C8A96E]">{item.icon}</span>
                 <span className="font-[family-name:var(--font-cormorant)] text-[17px] font-medium text-[#F0EAD6]">
                   {item.label}
                 </span>
@@ -58,9 +58,47 @@ export default function AboutSection() {
   );
 }
 
+function FishIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14.5 12c0-3.3-3.8-6.5-9.5-6.5-1.1 2-1.7 4.2-1.7 6.5s.6 4.5 1.7 6.5c5.7 0 9.5-3.2 9.5-6.5Z" />
+      <path d="M14.5 12l5.5-4v8l-5.5-4Z" />
+      <circle cx="7.2" cy="10.2" r=".9" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function ScooterIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="6" cy="17" r="2.1" />
+      <circle cx="17" cy="17" r="2.1" />
+      <path d="M8 17h6l2-5h3" />
+      <path d="M12.5 12h2.3l1.5 3" />
+    </svg>
+  );
+}
+
+function LeafIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M20 4C10 4 4 10 4 18c0 .7.6 1 1.2.7C13 15 20 10 20 4Z" />
+      <path d="M6 17c3-3 7-6 12-9" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 3.5l2.4 5 5.6.6-4.2 3.8 1.2 5.5-4.9-2.9-4.9 2.9 1.2-5.5-4.2-3.8 5.6-.6z" />
+    </svg>
+  );
+}
+
 const DECO_ITEMS = [
-  { icon: "🍣", label: "Produits frais", sub: "Sélectionnés chaque matin" },
-  { icon: "🛵", label: "Livraison rapide", sub: "Dans tout Le Mans" },
-  { icon: "🎋", label: "Recettes maison", sub: "Préparées à la commande" },
-  { icon: "⭐", label: "Fait avec soin", sub: "Chaque rouleau compte" },
+  { icon: <FishIcon />, label: "Produits frais", sub: "Sélectionnés chaque matin" },
+  { icon: <ScooterIcon />, label: "Livraison rapide", sub: "Dans tout Le Mans" },
+  { icon: <LeafIcon />, label: "Recettes maison", sub: "Préparées à la commande" },
+  { icon: <StarIcon />, label: "Fait avec soin", sub: "Chaque rouleau compte" },
 ];
