@@ -53,7 +53,7 @@ export default function MenuSection() {
           <h2 className="font-[family-name:var(--font-cormorant)] text-[36px] sm:text-[48px] lg:text-[56px] font-light text-[#F0EAD6] leading-[1.1] tracking-[0.02em] mb-4">
             {t.menu.title}
           </h2>
-          <p className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#8A8A8A] leading-[1.7] max-w-md">
+          <p className="font-[family-name:var(--font-dm-sans)] text-[15px] lg:text-[16px] text-[#8A8A8A] leading-[1.7] max-w-md">
             {t.menu.sub}
           </p>
         </div>
@@ -191,7 +191,7 @@ function MenuCard({
         </div>
 
         {/* Description */}
-        <p className="font-[family-name:var(--font-dm-sans)] text-[12.5px] text-[#8A8A8A] leading-[1.65] line-clamp-2 flex-1">
+        <p className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#8A8A8A] leading-[1.6] line-clamp-2 flex-1">
           {item.description}
         </p>
 
@@ -325,7 +325,7 @@ function MenuModal({ item, onClose }: { item: ApiMenuItem; onClose: () => void }
             {item.name}
           </h3>
 
-          <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] leading-[1.75] mb-6">
+          <p className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#8A8A8A] leading-[1.75] mb-6">
             {item.description}
           </p>
 

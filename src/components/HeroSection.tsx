@@ -82,7 +82,7 @@ export default function HeroSection() {
           <div className="w-16 h-px bg-[#8B6F3E] mb-4" />
 
           {/* Subtext */}
-          <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] leading-[1.6] mb-6 max-w-sm whitespace-pre-line">
+          <p className="font-[family-name:var(--font-dm-sans)] text-[14px] lg:text-[15px] text-[#8A8A8A] leading-[1.65] mb-6 max-w-sm whitespace-pre-line">
             {t.hero.sub}
           </p>
 
