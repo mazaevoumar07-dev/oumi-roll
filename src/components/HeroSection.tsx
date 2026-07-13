@@ -27,9 +27,9 @@ export default function HeroSection() {
       <div className="relative h-[300px] sm:h-[380px] w-full lg:absolute lg:inset-0 lg:h-full">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/images/hero-chef.jpg"
-          alt="Chef OUMI ROLL présentant un plateau de sushis"
-          className="absolute inset-0 w-full h-full object-cover object-[72%_35%] lg:object-[62%_center]"
+          src="/images/hero-sushi-plate.jpg"
+          alt="Plateau de sushis, sashimis, wasabi et gingembre"
+          className="absolute inset-0 w-full h-full object-cover object-[75%_center] lg:object-[68%_center]"
         />
 
         {/* Mobile: bottom fade so photo blends into the text area below */}
