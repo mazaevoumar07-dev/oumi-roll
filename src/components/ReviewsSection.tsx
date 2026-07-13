@@ -109,7 +109,7 @@ export default function ReviewsSection() {
           <h2 className="font-[family-name:var(--font-cormorant)] text-[36px] sm:text-[48px] font-light text-[#F0EAD6] leading-[1.1] tracking-[0.02em] mb-3">
             {t.reviews.title}
           </h2>
-          <p className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#8A8A8A] leading-[1.7] max-w-md">
+          <p className="font-[family-name:var(--font-dm-sans)] text-[15px] lg:text-[16px] text-[#8A8A8A] leading-[1.7] max-w-md">
             {t.reviews.sub}
           </p>
         </div>
@@ -145,7 +145,7 @@ export default function ReviewsSection() {
                     </div>
                     <Stars value={r.rating} />
                   </div>
-                  <p className="font-[family-name:var(--font-dm-sans)] text-[13px] text-[#8A8A8A] leading-[1.7]">
+                  <p className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#8A8A8A] leading-[1.7]">
                     {r.comment}
                   </p>
                 </article>

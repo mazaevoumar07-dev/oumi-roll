@@ -29,7 +29,7 @@ export default function AboutSection() {
 
             <div className="w-12 h-px bg-[#8B6F3E] mb-8" />
 
-            <p className="font-[family-name:var(--font-dm-sans)] text-[14px] text-[#8A8A8A] leading-[1.85] max-w-lg">
+            <p className="font-[family-name:var(--font-dm-sans)] text-[15px] lg:text-[16px] text-[#8A8A8A] leading-[1.85] max-w-lg">
               {t.about.text}
             </p>
           </div>
