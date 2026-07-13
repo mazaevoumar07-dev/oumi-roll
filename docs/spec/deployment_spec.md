@@ -162,7 +162,7 @@ stripe listen --forward-to localhost:3000/api/payment/webhook
 - [x] Координаты ресторана заданы верно (`RESTAURANT_LAT`, `RESTAURANT_LNG`)
 
 ### Внешние сервисы
-- [ ] Stripe — боевые ключи, webhook настроен, аккаунт верифицирован (см. `known_risks.md` — KYC ещё не пройден)
+- [ ] Stripe — боевые ключи, webhook настроен, аккаунт верифицирован — **сознательно отложено** (решение от 2026-07-05, Stripe остаётся в Test mode; см. `known_risks.md` — KYC ещё не пройден)
 - [~] Twilio — SMS-уведомления о заказах работают (номер подключён, тест пройден), **но** Phone Auth для регистрации клиентов сломан — Twilio-аккаунт в Supabase Dashboard на Trial, см. `known_risks.md`
 - [x] Google Maps — `GOOGLE_MAPS_API_KEY` используется только в серверном коде (`api/delivery/calculate`), не передаётся на клиент. Ограничения по IP/referrer в Google Cloud Console — не проверено
 - [x] Supabase Storage — бакет `menu-photos` создан, публичный доступ работает (используется активно, подтверждено)
