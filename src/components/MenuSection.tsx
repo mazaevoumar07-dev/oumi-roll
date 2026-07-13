@@ -146,7 +146,10 @@ function MenuCard({
           <img
             src={item.photo_url}
             alt={item.name}
-            className="absolute inset-0 w-full h-full object-cover"
+            className={[
+              "absolute inset-0 w-full h-full",
+              item.category === "Boissons" ? "object-contain p-4" : "object-cover",
+            ].join(" ")}
           />
         ) : (
           <SushiPlaceholder id={item.id} />
@@ -279,7 +282,10 @@ function MenuModal({ item, onClose }: { item: ApiMenuItem; onClose: () => void }
             <img
               src={item.photo_url}
               alt={item.name}
-              className="absolute inset-0 w-full h-full object-cover"
+              className={[
+                "absolute inset-0 w-full h-full",
+                item.category === "Boissons" ? "object-contain p-6" : "object-cover",
+              ].join(" ")}
             />
           ) : (
             <SushiPlaceholder id={item.id} large />
