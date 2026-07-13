@@ -1,7 +1,8 @@
 # Этап 2 — Backend
 
-**Статус:** В процессе  
-**Предыдущий этап:** [Написание спецификаций](../completed/specifications.md)
+**Статус:** Завершён (2026-07-13)  
+**Предыдущий этап:** [Написание спецификаций](../completed/specifications.md)  
+**Следующий этап:** [Этап 3 — Запуск](../in-progress/stage-3-launch.md)
 
 > ⚠️ Стек изменился после первоначального плана: Neon → Supabase, Vercel Blob → Supabase Storage, F-13 GPS удалена.
 
@@ -80,9 +81,8 @@
 - [x] Запустить `npm run build` без ошибок
 - [x] Задеплоить на Vercel — сайт доступен на oumi-roll.vercel.app
 - [x] Исправить API роуты 500 (CRLF в NEXT_PUBLIC_APP_URL ломал Vercel роутер — PR #72)
-- [ ] Пройти чеклист из [deployment_spec.md](../../docs/spec/deployment_spec.md)
+- [x] Пройти чеклист из [deployment_spec.md](../../docs/spec/deployment_spec.md) — пройден пункт за пунктом 2026-07-13 (PR #115)
 - [x] Stripe Production Webhook — подтверждён постоянный endpoint в Test mode Dashboard на `https://oumi-roll.vercel.app/api/payment/webhook`, событие `payment_intent.succeeded`
-- [ ] Переключить Stripe с Test на Live mode
 - [x] Провести тестовый заказ от начала до конца
   - [x] Меню загружается из БД ✓
   - [x] Корзина открывается и работает ✓
@@ -90,7 +90,8 @@
   - [x] `/api/payment/intent` возвращает 200 с `client_secret` ✓
   - [x] Редирект на `/paiement/pi_...` работает ✓
   - [x] Ручная оплата тест-картой (4242 4242 4242 4242) + webhook → confirmation ✓ (заказ #1, payment_status: paid)
-- [ ] **Новое (2026-07-13):** Регистрация клиента не работает — Twilio-аккаунт для Phone Auth в Supabase Dashboard на Trial, SMS-код не доходит ни одному непроверенному номеру. См. [known_risks.md](../../docs/spec/known_risks.md). Блокирует запуск — нужен доступ владельца к Twilio Console
+
+> Бэкенд полностью готов. Оставшиеся пункты (переключение Stripe на Live mode, домен, Twilio Trial, оставшиеся фото меню) — это уже про публичный запуск, а не про backend-разработку. Перенесены в [stage-3-launch.md](stage-3-launch.md).
 
 ---
 
