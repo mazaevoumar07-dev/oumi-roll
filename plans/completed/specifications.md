@@ -41,4 +41,4 @@
 
 ## Следующий шаг
 
-→ [Этап 2 — Backend](../in-progress/stage-2-backend.md)
+→ [Этап 2 — Backend](stage-2-backend.md)
