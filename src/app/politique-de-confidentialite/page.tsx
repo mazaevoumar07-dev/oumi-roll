@@ -11,7 +11,7 @@ const RESTAURANT_NAME    = "OUMI ROLL";
 const RESTAURANT_ADDRESS = "6 rue Flammarion, 72100 Le Mans";
 const RESTAURANT_PHONE   = "+33 6 02 21 06 68";
 const RESTAURANT_EMAIL   = "contact@oumiroll.fr";
-const LAST_UPDATED       = "6 juin 2026";
+const LAST_UPDATED       = "14 juillet 2026";
 
 export default function PolitiqueDeConfidentialitePage() {
   return (
@@ -260,23 +260,15 @@ export default function PolitiqueDeConfidentialitePage() {
 
             <Section title="7. Cookies et technologies similaires">
               <p>
-                Notre site utilise des cookies techniques nécessaires au fonctionnement du service
-                (session d&apos;authentification, panier). Ces cookies ne nécessitent pas votre consentement
-                (art. 82 de la loi Informatique et Libertés).
+                Notre site utilise uniquement un cookie technique nécessaire au fonctionnement du
+                service (session d&apos;authentification). Ce cookie ne nécessite pas votre consentement
+                (art. 82 de la loi Informatique et Libertés). Le contenu de votre panier n&apos;est pas
+                stocké dans un cookie : il n&apos;existe qu&apos;en mémoire le temps de votre visite.
               </p>
               <p className="mt-3">
-                L&apos;utilisation de l&apos;API Google Maps peut entraîner le dépôt de cookies tiers par Google
-                sur votre navigateur lors du calcul de la distance de livraison. Ces cookies sont soumis à
-                la{" "}
-                <a
-                  href="https://policies.google.com/privacy"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[#C8A96E] hover:text-[#E2C07A] transition-colors"
-                >
-                  politique de confidentialité de Google
-                </a>
-                .
+                L&apos;API Google Maps est utilisée uniquement depuis notre serveur pour calculer la
+                distance de livraison — elle n&apos;est jamais chargée dans votre navigateur et ne dépose
+                donc aucun cookie tiers.
               </p>
             </Section>
 
